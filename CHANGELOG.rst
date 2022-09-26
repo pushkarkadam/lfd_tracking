@@ -12,3 +12,7 @@ and this project adheres to `Semantic Versioning`_.
 
 [Unrelease]
 -----------
+Added
+^^^^^
+- Get video image frames from a video file.
+- Converting the image type of the list of image frames as per color conversion code of opencv. 

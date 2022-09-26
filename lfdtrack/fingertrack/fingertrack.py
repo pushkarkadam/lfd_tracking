@@ -3,6 +3,7 @@ import mediapipe as mp
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.express as px
+from sklearn.linear_model import LinearRegression
 
 
 mp_drawing = mp.solutions.drawing_utils

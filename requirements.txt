@@ -8,3 +8,4 @@ tensorflow
 opencv-python
 mediapipe
 sphinx
+pytest

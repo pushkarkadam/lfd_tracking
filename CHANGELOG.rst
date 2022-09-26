@@ -15,4 +15,6 @@ and this project adheres to `Semantic Versioning`_.
 Added
 ^^^^^
 - Get video image frames from a video file.
-- Converting the image type of the list of image frames as per color conversion code of opencv. 
+- Converting the image type of the list of image frames as per color conversion code of opencv.
+- Tracking finger using mediapipe.
+- Model to draw straight lines using the fingertip data.

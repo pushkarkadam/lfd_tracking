@@ -1,2 +1,2 @@
-import lfdtrack.handrec
-from lfdtrack.handrec import *
+import lfdtrack.fingertrack
+from lfdtrack.fingertrack import *

@@ -331,3 +331,42 @@ def point_box(image, x_vals, y_vals, scaling_factor=100):
         boxes.append(polygon)
         
     return boxes  
+
+def region_of_interest(image, boxes):
+    """Returns the image with region of interest.
+    
+    The image consists of only the region of interest
+    with the original image while the rest of the 
+    region is colored black with 0.
+    
+    Parameters
+    ----------
+    image: numpy.ndarray
+        An RGB image.
+    boxes: list
+        A list of ``numpy.ndarray``.
+        
+    Returns
+    -------
+    numpy.ndarray
+        An image with the region of interest.
+        Use ``matplotlib.pyplot.imshow(image)``
+        to see the image in Jupyter Notebook.
+    
+    Examples
+    --------
+    >>> from lfdtrack.fingertrack import *
+    >>> import numpy as np
+    >>> boxes = [np.array([[1,2],[3,4]]), np.array([[1,2],[3,4]])]
+    >>> image = np.identity(3)
+    >>> im_roi = region_of_interest(image, boxes)
+    """
+
+    mask = np.zeros_like(image)
+
+    for box in boxes:
+        image_poly = cv2.fillPoly(mask, box, color=(255,255,255))
+        
+    masked_image = cv2.bitwise_and(image, image_poly)
+    
+    return masked_image

@@ -19,4 +19,5 @@ Added
 - Tracking finger using mediapipe.
 - Model to draw straight lines using the fingertip data.
 - Function to count the point coordinate box added.
-- Function to extrack the point coordinate box for each point added.
+- Function to extract the point coordinate box for each point added.
+- Function to maintain region of interest added.

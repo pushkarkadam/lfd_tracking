@@ -281,3 +281,53 @@ def region_box_coords(image, x_vals, y_vals, scaling_factor=100):
     y_max = int(max(y_pad))
     
     return (x_min, y_min, x_max, y_max)
+
+def point_box(image, x_vals, y_vals, scaling_factor=100):
+    """Returns an array of points.
+    
+    Returns the box that has the length
+    of twice the scaling_factor pixels.
+    
+    Parameters
+    ----------
+    image: numpy.ndarray
+        An RGB image.
+    x_vals: list
+        A list of x co-ordinates.
+    y_vals: list
+        A list of y co-ordinates.
+    scaling_factor: int
+        Scaling the area vertically and horizontally
+        for a point.
+        
+    Returns
+    -------
+    list
+        A list of ``numpy.ndarray`` that consists of the
+        end co-ordinates of the box around the pixel.
+        
+    Examples
+    --------
+    >>> from lfdtrack.fingertrack import *
+    >>> import numpy as np
+    >>> I = np.identity(5)
+    >>> x = list(range(1,3))
+    >>> y = list(range(1,3))
+    >>> boxes = point_box(I, x, y, scaling_factor=100)
+    
+    """
+    boxes = []
+    
+    for x, y in zip(x_vals, y_vals):
+        x_min, y_min, x_max, y_max = region_box_coords(image, [x], [y], scaling_factor=scaling_factor)
+        
+        polygon = np.array([
+            [(x_min, y_min), 
+             (x_min, y_max),
+             (x_max, y_max),
+             (x_max, y_min)
+            ]
+        ])
+        boxes.append(polygon)
+        
+    return boxes  

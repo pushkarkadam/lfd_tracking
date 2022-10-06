@@ -18,3 +18,4 @@ Added
 - Converting the image type of the list of image frames as per color conversion code of opencv.
 - Tracking finger using mediapipe.
 - Model to draw straight lines using the fingertip data.
+- Function to count the point coordinate box added.

@@ -210,3 +210,74 @@ def fit_track(x, y):
     y_pred = model.predict(x)
     
     return list(y_pred)
+
+def region_box_coords(image, x_vals, y_vals, scaling_factor=100):
+    """Returns the region box co-ordinates.
+    
+    Finds the maximum and minimum x and y co-ordinates
+    where the line was traced in the image.
+    
+    Parameters
+    ----------
+    image: numpy.ndarray
+        An RGB image.
+    x_vals: list
+        A list of all the x co-ordinates where the finger
+        was tracked.
+    y_vals: list
+        A list of all the y co-ordinates where the finger
+        was tracked.
+    scaling_factor: int, default ``100``
+        The scaling factor is the value in pixel.
+        It denotes how further away the padding is 
+        required for the image.
+        
+    Returns
+    -------
+    tuple
+        A tuple of int values in the
+        order (x_min, y_min, x_max, y_max)
+    
+    Examples
+    --------
+    >>> from lfdtrack.fingertrack import *
+    >>> import numpy as np
+    >>> I = np.identity(5)
+    >>> x = list(range(1,3))
+    >>> y = list(range(1,3))
+    >>> boxes = point_box(I, x, y, scaling_factor=100)
+    
+    """
+    # Getting image dimensions
+    img_height = image.shape[0]
+    img_width = image.shape[1]
+    
+    x_pad = []
+    y_pad = []
+    
+    # copying for smaller named variable
+    sf = scaling_factor
+    
+    for x, y in zip(x_vals, y_vals):
+        # x padding
+        x1 = x-sf if x-sf > 0 else 0
+        x2 = x+sf if x+sf < img_width else img_width
+        
+        # y padding
+        y1 = y-sf if y-sf > 0 else 0
+        y2 = y+sf if y-sf < img_height else img_height
+              
+        # Adding the scaling values to the padding list
+        x_pad.append(x1)
+        x_pad.append(x2)
+        
+        y_pad.append(y1)
+        y_pad.append(y2)
+        
+    # Converting the min and max value to int
+    x_min = int(min(x_pad))
+    x_max = int(max(x_pad))
+    y_min = int(min(y_pad))
+    y_max = int(max(y_pad))
+    
+    return (x_min, y_min, x_max, y_max)

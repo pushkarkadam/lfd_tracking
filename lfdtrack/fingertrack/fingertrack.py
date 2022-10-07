@@ -360,6 +360,7 @@ def region_of_interest(image, boxes):
     >>> boxes = [np.array([[1,2],[3,4]]), np.array([[1,2],[3,4]])]
     >>> image = np.identity(3)
     >>> im_roi = region_of_interest(image, boxes)
+    
     """
 
     mask = np.zeros_like(image)

@@ -16,7 +16,7 @@ def get_video_frames(video_path):
     The frames are extracted from the video and each frame
     is an image that is represented as a numpy array.
     
-    Paramaters
+    Parameters
     ----------
     video_path: str
         The path to the video file.
@@ -67,7 +67,7 @@ def convert_frames(frames, color_conversion_code=cv2.COLOR_BGR2RGB):
         For more information on the color conversion code,
         see the `opencv docs`_.
         
-        .._opencv docs: https://docs.opencv.org/3.4/d8/d01/group__imgproc__color__conversions.html
+        .. _opencv docs: https://docs.opencv.org/3.4/d8/d01/group__imgproc__color__conversions.html
     
     Returns
     -------
@@ -360,7 +360,7 @@ def region_of_interest(image, boxes):
     >>> boxes = [np.array([[1,2],[3,4]]), np.array([[1,2],[3,4]])]
     >>> image = np.identity(3)
     >>> im_roi = region_of_interest(image, boxes)
-    
+
     """
 
     mask = np.zeros_like(image)

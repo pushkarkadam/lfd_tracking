@@ -1,7 +1,8 @@
 import numpy as np
+import sys
 
 
-def upper_left_value(I, value=1):
+def upper_left_value(I):
     """Returns the coordinate of the uppermost-leftmost pixel value given as input.
     
     Iterates over the matrix from top to bottom
@@ -27,13 +28,13 @@ def upper_left_value(I, value=1):
     --------
     >>> from lfdtrack import *
     >>> I = np.array([[1,2,3], [4,4,5]])
-    >>> upper_left_value(I, 1)
+    >>> upper_left_value(I)
     (0,0)
     
     """
     for row in range(0, I.shape[0]):
         for col in range(0, I.shape[1]):
-            if I[row][col] == value:
+            if I[row][col] == 1:
                 b0 = (row, col)
                 return b0
 
@@ -67,9 +68,9 @@ def neighbors_8(I, pixel_coords, background_point):
     Examples
     --------
     >>> from lfdtrack import *
-    >>> I = np.array([[1,2,3], [4,4,5]])
+    >>> I = np.array([[1,1,0], [1,0,1], [0,1,0]])
     >>> I = np.pad(I, 1)
-    >>> neighbors_8(bar, (1,1), (1,2))
+    >>> neighbors_8(I, (1,1), (0,0))
     [(1, 2), (2, 2), (2, 1), (2, 0), (1, 0), (0, 0), (0, 1), (0, 2)]
     
     """
@@ -99,3 +100,114 @@ def neighbors_8(I, pixel_coords, background_point):
     sequence = before + after
     
     return sequence
+
+def find_first_value(I, neighbors):
+    """Returns the positional co-ordinates
+    of new found value point (b) and the new
+    position of background point (c).
+    
+    The function is a part of the Moore boundary
+    tracing algorithm.
+    
+    Parameters
+    ----------
+    I: np.ndarray
+        A numpy array.
+        This array represents the binary image.        
+    neighbors: list
+        A list of all the 8 neighbors of the central
+        pixel starting (b) from the background point (c).
+    value: int, default ``1``
+        The value to search.
+    
+    Returns
+    -------
+    tuple
+        Co-ordinates of new central point and the background point.
+    
+    Examples
+    --------
+    >>> from lfdtrack import *
+    >>> I = np.array([[1,1,0], [1,0,1], [0,1,0]])
+    >>> I = np.pad(I, 1)
+    >>> n = neighbors_8(I, (1,1), (0,0))
+    >>> find_first_value(I, n)
+    (3, 2)
+
+    """
+    
+    for n in enumerate(neighbors):
+        i, j = n[1]
+        # Checking if the co-ordinate matches 1
+        if I[i][j] == 1:
+            nk = n[0]
+            nk_1 = n[0] - 1
+            break
+    try:        
+        b = nk
+        c = nk_1   
+        return b, c
+    except Exception as e:
+        print(e)
+        return None
+        
+
+def boundary_tracer(I):
+    """Returns the co-ordinates of the boundary pixels.
+    
+    This algorithm is based on Moore Boundary Tracing Algorithm.
+    
+    Parameters
+    ----------
+    I: np.ndarray
+        A numpy array.
+        This array represents the binary image.
+    
+    Returns
+    -------
+    set
+        A set of all the boundary co-ordinates.
+
+    Examples
+    --------
+    >>> from lfdtrack import *
+    >>> I = np.array([[1,1,0], [1,0,1], [0,1,0]])
+    >>> I = np.pad(I, 1)
+    >>> boundary_tracer(I)
+
+    """
+    # Step 1: Starting with the uppermost-leftmost point
+    b0 = upper_left_value(I)
+    
+    # Assigning the background point 
+    c0 = (b0[0], b0[1]-1)
+    
+    # Step 2: Assigning the first points to boundary and background point
+    b = b0
+    c = c0
+    
+    # A set of boundary co-ordinates
+    boundary = set()
+    
+    # Keep running the till the last boundary co-ordinate detected matches the first
+    while True:
+        # Step 3: Finding neighboring co-ordinate to boundary pixel.
+        n = neighbors_8(I, b, c)
+        
+        # Step 4: Assigning new b and c values
+        try:
+            nk, nk_1 = find_first_value(I, n)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
+
+        b = n[nk]
+        c = n[nk_1]
+        
+        # Stop the loop when the first boundary co-ordinate is detected
+        if b in boundary:
+            break
+        else:
+            boundary.add(b)
+    
+    return boundary

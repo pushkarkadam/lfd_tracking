@@ -58,7 +58,6 @@ def neighbors_8(I, pixel_coords, background_point):
         The co-ordinate of the point that traces the boundary.
         Represented as c in the algorithm
         
-        
     Returns
     -------
     list

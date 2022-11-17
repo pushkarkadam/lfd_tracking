@@ -27,9 +27,10 @@ def upper_left_value(I):
     Examples
     --------
     >>> from lfdtrack import *
-    >>> I = np.array([[1,2,3], [4,4,5]])
+    >>> I = np.array([[1,0,1], [1,0,1]])
+    >>> I = np.pad(I, 1)
     >>> upper_left_value(I)
-    (0,0)
+    (1, 1)
     
     """
     for row in range(0, I.shape[0]):
@@ -71,7 +72,7 @@ def neighbors_8(I, pixel_coords, background_point):
     >>> I = np.array([[1,1,0], [1,0,1], [0,1,0]])
     >>> I = np.pad(I, 1)
     >>> neighbors_8(I, (1,1), (0,0))
-    [(1, 2), (2, 2), (2, 1), (2, 0), (1, 0), (0, 0), (0, 1), (0, 2)]
+    [(0, 0), (0, 1), (0, 2), (1, 2), (2, 2), (2, 1), (2, 0), (1, 0)]
     
     """
     
@@ -172,10 +173,12 @@ def boundary_tracer(I):
     --------
     >>> from lfdtrack import *
     >>> I = np.array([[1,1,0], [1,0,1], [0,1,0]])
-    >>> I = np.pad(I, 1)
     >>> boundary_tracer(I)
-
+    {(1, 1), (1, 2), (2, 1), (2, 3), (3, 2)}
     """
+    # Add Padding to the image 
+    I = np.pad(I, 1)
+
     # Step 1: Starting with the uppermost-leftmost point
     b0 = upper_left_value(I)
     

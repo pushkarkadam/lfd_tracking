@@ -12,3 +12,8 @@ fingertrack submodule
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: lfdtrack.boundary
+   :members:
+   :undoc-members:
+   :show-inheritance:

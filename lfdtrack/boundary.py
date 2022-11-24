@@ -175,6 +175,7 @@ def boundary_tracer(I):
     >>> I = np.array([[1,1,0], [1,0,1], [0,1,0]])
     >>> boundary_tracer(I)
     {(1, 1), (1, 2), (2, 1), (2, 3), (3, 2)}
+    
     """
     # Add Padding to the image 
     I = np.pad(I, 1)
@@ -190,7 +191,7 @@ def boundary_tracer(I):
     c = c0
     
     # A set of boundary co-ordinates
-    boundary = set()
+    pad_boundary = set()
     
     # Keep running the till the last boundary co-ordinate detected matches the first
     while True:
@@ -208,9 +209,18 @@ def boundary_tracer(I):
         c = n[nk_1]
         
         # Stop the loop when the first boundary co-ordinate is detected
-        if b in boundary:
+        if b in pad_boundary:
             break
         else:
-            boundary.add(b)
+            pad_boundary.add(b)
+
+        # Creating a new un padded boundary
+        boundary = set()
+        
+        # Subtracting one (-1) from the co-ordinate to compensate for
+        # adding one layer of padding.
+        for c in list(pad_boundary):
+            unpadded_coord = (c[0]-1, c[1]-1)
+            boundary.add(unpadded_coord)
     
     return boundary

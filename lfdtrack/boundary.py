@@ -224,3 +224,50 @@ def boundary_tracer(I):
         boundary.add(unpadded_coord)
     
     return boundary
+
+def isolate_point_roi(I, boxes):
+    """Returns a list of all the roi cropped images around the fingertip.
+    
+    The cropped images use the point box to isolate the region.
+    
+    Parameters
+    ----------
+    I: np.ndarray
+        A numpy array.
+        This array represents the binary image.
+    
+    boxes: list
+        A list of all the box co-ordinates in the format used
+        for polyfill function.
+        **Example**: ``boxes = [np..array([[483,327], [483, 527], [683, 527], [683, 327]])]``
+        
+        The co-ordinates specified are as ``[[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]]``.
+    
+    Returns
+    -------
+    list
+        A list of cropped roi images from the input image.
+        This list consist of numpy array.
+    
+    Examples
+    --------
+    >>> from lfdtrack import *
+    >>> I = np.zeros([5,5])
+    >>> boxes = [np.array([[[1,1],[1,3],[3,3],[3,1]]])]
+    >>> roi_imgs = isolate_point_roi(I, boxes)
+    
+    """
+    roi_images = []
+
+    for box in boxes:
+        # Columns
+        xmin = box[0][0][0]
+        xmax = box[0][2][0]
+        
+        # Rows
+        ymin = box[0][0][1]
+        ymax = box[0][2][1]
+
+        roi_images.append(I[ymin:ymax,xmin:xmax])
+        
+    return roi_images

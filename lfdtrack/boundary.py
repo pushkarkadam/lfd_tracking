@@ -246,8 +246,11 @@ def isolate_point_roi(I, boxes):
     Returns
     -------
     list
-        A list of cropped roi images from the input image.
-        This list consist of numpy array.
+        A list tuples of cropped roi images and its top-left position in
+        in the input image.
+        The first value in the tuple is a numpy array.
+        The second value in the tuple is a tuple of ``(ymin, xmin)``
+        co-ordinate which corresponds to ``(row, column)``.
     
     Examples
     --------
@@ -267,7 +270,9 @@ def isolate_point_roi(I, boxes):
         # Rows
         ymin = box[0][0][1]
         ymax = box[0][2][1]
+        
+        img_crop = I[ymin:ymax,xmin:xmax]
 
-        roi_images.append(I[ymin:ymax,xmin:xmax])
+        roi_images.append((img_crop, (ymin, xmin)))
         
     return roi_images

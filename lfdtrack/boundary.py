@@ -235,7 +235,6 @@ def isolate_point_roi(I, boxes):
     I: np.ndarray
         A numpy array.
         This array represents the binary image.
-    
     boxes: list
         A list of all the box co-ordinates in the format used
         for polyfill function.

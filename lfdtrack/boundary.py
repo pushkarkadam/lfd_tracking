@@ -275,3 +275,65 @@ def isolate_point_roi(I, boxes):
         roi_images.append((img_crop, (ymin, xmin)))
         
     return roi_images
+
+def patch_roi(I, roi_images):
+    """Returns the image patched with all the ``roi_images``.
+    
+    The roi cropped images along with the top-left co-ordinates
+    in the main image locations are important.
+    
+    Parameters
+    ----------
+    I: np.ndarray
+        A numpy array.
+        This array represents the binary image.
+    roi_images: list
+        A list of tuples consisting of numpy array and top-left coordinate
+        of the roi image in the main image.
+        
+    Returns
+    -------
+    numpy.ndarray
+        A patched image with all the roi images.
+        
+    Examples
+    --------
+    >>> from lfdtrack import *
+    >>> I = np.zeros([5,5])
+    >>> I_roi0 = np.array([[1,2],[3,4]])
+    >>> I_roi1 = np.array([[1,2],[3,4]])
+    >>> roi_I = [(I_roi0, (1,1)), (I_roi1, (2,2))]
+    >>> patch_roi(I, roi_I)
+    
+    """
+    # Iterating over all the cropped images
+    for i in roi_images:
+        # separating the tuple values
+        img = i[0]
+        coord = i[1]
+        
+        # Assigning the mininum row coordinate
+        row_min = coord[0]
+        
+        # Reassigning to the variable r
+        r = row_min
+        
+        # Iterating over the crop image row
+        for row in range(img.shape[0]):
+            # Assigning the column minium coordinate
+            col_min = coord[1]
+            
+            # Reassigning to the variable c
+            c = col_min
+            
+            # Iterating over the crop image columns
+            for col in range(img.shape[1]):
+                # Assigning the crop image's element to the main image
+                I[r][c] = img[row][col]
+                
+                # Incrementing the column value in the main image
+                c+=1
+            # Incrementing the row value in the main image
+            r+=1
+    
+    return I

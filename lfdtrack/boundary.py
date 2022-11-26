@@ -337,3 +337,61 @@ def patch_roi(I, roi_images):
             r+=1
     
     return I
+
+def roi_edges(roi_crops, blur_n=1, blur_kernel=(5,5), lower_threshold=50, upper_threshold=100, L2gradient=False):
+    """Returns a list of tuples of value.
+    
+    The first value of the tuple is the roi cropped image
+    from the main image with edge detected.
+    The second value is a tuple with the top-left co-ordinate
+    of the roi_cropped image from the main image.
+    
+    Parameters
+    ----------
+    roi_crops: list
+        A list of tuples. 
+        **Example**: ``[(np.array([[1,2],[3,4]]), (0,0)), (np.array([[1,2],[3,4]]), (0,0))]
+    blur_n: int, default ``1``
+        The number of times to perform blur operation.
+    blur_kernel: tuple, default ``(5,5)``
+        The kernel size for blurring operation.
+    lower_threshold: int, default ``50``
+        The lower threshold value used for Canny edge detection.
+    upper_threshold: int, default ``100``
+        The upper threshold value used for Canny edge detection.
+    L2gradient: bool, default ``False``
+        If ``True``, then the L2gradient operation is performed.
+        
+    Returns
+    -------
+    list
+        A list of tuple of value roi cropped images with edge detected
+        and the second value of the top-left co-ordinate in the main image
+        from which the roi was cropped.
+    
+    Examples
+    --------
+    >>> from lfdtrack import *
+    >>> I_roi0 = np.random.randint(255,size=(100,100), dtype='uint8')
+    >>> I_roi1 = np.random.randint(255,size=(100,100), dtype='uint8')
+    >>> roi_crops = [(I_roi0, (1,1)), (I_roi1, (2,2))]
+    >>> crop_edges = roi_edges(roi_crops)
+    
+    """
+    crop_edges = []
+    
+    for i in roi_crops:
+        img = i[0]
+        co = i[1]
+        
+        # blurring
+        for n in range(blur_n):
+            img = cv2.blur(img, ksize=blur_kernel)
+        
+        # Canny edge detection
+        edge_img = cv2.Canny(img, threshold1=lower_threshold, threshold2=upper_threshold, L2gradient=L2gradient)
+        
+        # adding the edge detected image to the crop edge list with top-left co-ordinate
+        crop_edges.append((edge_img, co))
+        
+    return crop_edges

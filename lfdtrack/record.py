@@ -2,25 +2,25 @@ import numpy as np
 import cv2 as cv
 import sys 
 import time
+import argparse
 
-if len(sys.argv) > 1:
-    video_name = f'{sys.argv[1]}.avi'
-    
-else:
-    video_name = f'video_{int(time.time())}.avi'
-    cam_number = 0
-    print('Usage: python record.py <video_name> <cam_number>')
+# command line arguments
+parser = argparse.ArgumentParser(description='Pass arguments')
 
-if len(sys.argv) == 3:
-    cam_number = int(sys.argv[2])
-else:
-    cam_number = 0
-    print('Using default web camera')
+parser.add_argument("-o", "--output_video", default=f'{int(time.time())}', help="Video output name")
+parser.add_argument("-c", "--camera", default=0, help="Specify the camera. Defaults to 0.")
+parser.add_argument('-m', "--mirror", default=False, help="Mirrors the camera")
 
+args = parser.parse_args()
+
+# Assigning the command line arguments
+video_name = f'{args.output_video}.avi' 
+camera_number = int(args.camera)
+mirror = args.mirror
 
 # video capture object
 try:
-    cap = cv.VideoCapture(cam_number)
+    cap = cv.VideoCapture(camera_number)
 except Exception as e:
     print(e)
 
@@ -34,7 +34,10 @@ while cap.isOpened():
     if not ret:
         print("Can't receive frame (stream end?). Exiting ...")
         break
-    # frame = cv.flip(frame, 0)
+
+    if mirror:
+        frame = cv.flip(frame, 1)
+    
     # write the flipped frame
     out.write(frame)
     cv.imshow('frame', frame)

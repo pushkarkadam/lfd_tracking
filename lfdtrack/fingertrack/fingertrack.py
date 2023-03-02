@@ -371,3 +371,74 @@ def region_of_interest(image, boxes):
     masked_image = cv2.bitwise_and(image, image_poly)
     
     return masked_image
+
+def track_from_dir(root_path, save_path, box_scaling_factor):
+    """Track all the paths in the video.
+    
+    Tracks the hand in the video using mediapipe and isolates
+    ROI. Also, recording the fingertip co-ordinates.
+    
+    Parameters
+    ----------
+    root_path: str
+        The path where the videos are stored (example: ``'data/videos'``).
+    save_path: str
+        The path where the images are saved.
+    box_scaling_factor:
+        The scaling factor for the ROI box.
+    
+    """
+    
+    video_names = list(os.listdir(root_path))
+    
+    for video_n in tqdm(range(len(video_names))):
+        # Assigning the name of the video
+        video = video_names[video_n]
+        
+        video_path = os.path.join(root_path, video)
+        
+        # get video frames
+        frames = get_video_frames(video_path)
+        
+        # convert video frames to rgb
+        rgb_frames = convert_frames(frames, cv2.COLOR_BGR2RGB)
+        
+        print(f"Processing: {video}")
+        
+        # tracking fingertips
+        fingertips = finger_tracking(rgb_frames, 
+                                     hand_landmark='INDEX_FINGER_TIP', 
+                                     max_num_hands=2, 
+                                     min_detection_confidence=0, 
+                                     verbose=False)
+        
+        # ROI
+        boxes = point_box(rgb_frames[-1], fingertips['x'], fingertips['y'], scaling_factor=box_scaling_factor)
+        
+        Im = region_of_interest(rgb_frames[-1], boxes)
+        
+        # image name
+        roi_img_name = 'ROI' + video[0:video.index('.')] + '.png'
+        
+        # image path
+        image_save_path = os.path.join(save_path, roi_img_name)
+        
+        # saving image
+        cv2.imwrite(image_save_path, Im)
+        
+        # line track
+        
+        # image name
+        line_img_name = 'LINE' + video[0:video.index('.')] + '.png'
+        
+        line_img_save_path = os.path.join(save_path, line_img_name)
+        
+        implot = plt.imshow(rgb_frames[-1])
+        
+
+        plt.plot(fingertips['x'], fingertips['y'], linestyle='solid', color='r')
+        
+        plt.savefig(line_img_save_path, format='svg', dpi=100)
+        
+        # Clearing the plot
+        plt.clf()

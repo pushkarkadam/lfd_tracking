@@ -4,3 +4,7 @@ from lfdtrack.fingertrack import *
 import lfdtrack.boundary 
 from lfdtrack.boundary import *
 from .boundary import *
+
+import lfdtrack.capture 
+from lfdtrack.capture import *
+from .capture import *

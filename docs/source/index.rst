@@ -13,6 +13,7 @@ Welcome to lfdtrack's documentation!
    readme 
    modules 
    documentation
+   camera
    changelog
 
 Indices and tables

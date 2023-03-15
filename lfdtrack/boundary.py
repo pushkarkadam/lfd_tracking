@@ -161,7 +161,7 @@ def boundary_tracer(I):
     
     Parameters
     ----------
-    I: np.ndarray
+    I: numpy.ndarray
         A numpy array.
         This array represents the binary image.
     
@@ -239,7 +239,7 @@ def isolate_point_roi(I, boxes):
     boxes: list
         A list of all the box co-ordinates in the format used
         for polyfill function.
-        **Example**: ``boxes = [np..array([[483,327], [483, 527], [683, 527], [683, 327]])]``
+        **Example**: ``boxes = [np.array([[483,327], [483, 527], [683, 527], [683, 327]])]``
         
         The co-ordinates specified are as ``[[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]]``.
     
@@ -351,7 +351,7 @@ def roi_edges(roi_crops, blur_n=1, blur_kernel=(5,5), lower_threshold=50, upper_
     ----------
     roi_crops: list
         A list of tuples. 
-        **Example**: ``[(np.array([[1,2],[3,4]]), (0,0)), (np.array([[1,2],[3,4]]), (0,0))]
+        **Example**: ``[(np.array([[1,2],[3,4]]), (0,0)), (np.array([[1,2],[3,4]]), (0,0))]``
     blur_n: int, default ``1``
         The number of times to perform blur operation.
     blur_kernel: tuple, default ``(5,5)``

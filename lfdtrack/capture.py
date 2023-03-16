@@ -22,7 +22,7 @@ def capture_image(save_path='', camera=0, image_name='', image_format="png", res
         The format of the image.
     resolution: tuple, default ``(720, 480)``
         Image resolution to capture the image. Use ``(2560, 720)`` resolution for stereo image capture.
-    counter= int, default ``5``.
+    counter: int, default ``5``.
         Counts the iteration before taking the image.
         This allows the camera to have enough time to get the input and avoid the green image that results from initial switching of the camera.
 
@@ -35,6 +35,8 @@ def capture_image(save_path='', camera=0, image_name='', image_format="png", res
     --------
     >>> from lfdtrack import *
     >>> I = capture_image()
+    >>> # For stereo image
+    >>> I_stereo = capture_image(camera=4, image_name='stereo', image_format='png', resolution=(2560, 720))
 
     """
 

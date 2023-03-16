@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 import sys 
 import os 
 import time
+from tqdm import tqdm 
 
 
-def capture_image(save_path='', camera=0, image_name='', image_format="png"):
+def capture_image(save_path='', camera=0, image_name='', image_format="png", resolution=(720, 480), counter=5):
     """Captures an image.
     
     Parameters
@@ -18,7 +19,12 @@ def capture_image(save_path='', camera=0, image_name='', image_format="png"):
     image_name: str, optional
         The name of the image.
     format: str, optional, default ``"png"``
-        The format of the image
+        The format of the image.
+    resolution: tuple, default ``(720, 480)``
+        Image resolution to capture the image. Use ``(2560, 720)`` resolution for stereo image capture.
+    counter= int, default ``5``.
+        Counts the iteration before taking the image.
+        This allows the camera to have enough time to get the input and avoid the green image that results from initial switching of the camera.
 
     Returns
     -------
@@ -34,7 +40,18 @@ def capture_image(save_path='', camera=0, image_name='', image_format="png"):
 
     cam = cv2.VideoCapture(camera)
 
-    result, image = cam.read()
+    if cam.isOpened() == 0:
+        exit(-1)
+
+    cam.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
+    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
+
+    print("Initialising Camera...")
+
+    print("Testing camera...")
+
+    for i in tqdm(list(range(0,counter))):
+        result, image = cam.read()
 
     if result:
         # writing the image
@@ -42,7 +59,7 @@ def capture_image(save_path='', camera=0, image_name='', image_format="png"):
             # check if the image name is given as input
             if image_name:
                 image_name_format = image_name + '.' + image_format
-            # Use a timestamp to ncap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])ame the image when the image name is not given
+            # Use a timestamp to name the image when the image name is not given
             else:
                 image_name_format = str(int(time.time())) + '.' + image_format
 

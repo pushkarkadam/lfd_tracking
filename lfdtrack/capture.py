@@ -42,7 +42,7 @@ def capture_image(save_path='', camera=0, image_name='', image_format="png"):
             # check if the image name is given as input
             if image_name:
                 image_name_format = image_name + '.' + image_format
-            # Use a timestamp to name the image when the image name is not given
+            # Use a timestamp to ncap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])ame the image when the image name is not given
             else:
                 image_name_format = str(int(time.time())) + '.' + image_format
 
@@ -55,3 +55,38 @@ def capture_image(save_path='', camera=0, image_name='', image_format="png"):
         print("No image detected. Please try again.")
 
     return image
+
+
+def stereo_split(I, sections=2, axis=1):
+    """Returns a tuple of left and right image of the stereo image.
+
+    Parameters
+    ----------
+    I: numpy.ndarray
+        A stereo image which is located next to each other.
+    sections: int, default ``2``
+        Number of sections to split the image.
+    axis: int, default ``1``
+        Axis about which to split.
+        ``1`` used for splitting around y-axis.
+        ``0`` used for splitting around x-axis.
+    
+    Returns
+    -------
+    tuple
+        A tuple of split image.
+
+    Examples
+    --------
+    >>> from lfdtrack import *
+    >>> I = np.zeros((500, 1000))
+    >>> imgL, imgR = stereo_split(I)
+    >>> imgL.shape
+    (500, 500)
+    
+    """
+
+    img_split = np.split(I, indices_or_sections=sections, axis=axis)
+
+    return img_split 
+

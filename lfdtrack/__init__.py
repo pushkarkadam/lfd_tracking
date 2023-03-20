@@ -13,3 +13,7 @@ from .fingertrack import *
 import lfdtrack.roi 
 from lfdtrack.roi import *
 from .roi import *
+
+import lfdtrack.plotters
+from lfdtrack.plotters import *
+from .plotters import *

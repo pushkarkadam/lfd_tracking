@@ -36,7 +36,7 @@ def upper_left_value(I):
     """
     for row in range(0, I.shape[0]):
         for col in range(0, I.shape[1]):
-            if I[row][col] == 1:
+            if I[row][col] > 0:
                 b0 = (row, col)
                 return b0
 

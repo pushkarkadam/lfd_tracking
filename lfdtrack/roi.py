@@ -133,3 +133,35 @@ def weldment_roi(image,
     weldment_roi = cv2.bitwise_and(img_poly, image)
     
     return (weldment_roi, long_contour)
+
+def weldment_fingertrack(contours, fingertips):
+    """Tracking fingers on the weldments.
+    
+    Parameters
+    ----------
+    contours: list
+        A list of all the contour points.
+    fingetips: dict
+        A dictionary of fingertips co-ordinates.
+        
+    Returns
+    -------
+    dict:
+        A dictionary of ``x`` and ``y`` co-ordinates of the fingertip over the weldment object.
+    
+    """
+    
+    con_x = []
+    con_y = []
+    weld_fingertips = {'x': [], 'y': []}
+    
+    for contour in contours:
+        con_y.append(contour[0][1])
+        con_x.append(contour[0][0])
+        
+    for x, y in zip(fingertips['x'], fingertips['y']):
+        if (x < max(con_x) and x > min(con_x)) and (y < max(con_y) and y > min(con_y)):
+            weld_fingertips['x'].append(x)
+            weld_fingertips['y'].append(y)
+            
+    return weld_fingertips

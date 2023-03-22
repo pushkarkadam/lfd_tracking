@@ -17,3 +17,7 @@ from .roi import *
 import lfdtrack.plotters
 from lfdtrack.plotters import *
 from .plotters import *
+
+import lfdtrack.search
+from lfdtrack.search import *
+from .search import *

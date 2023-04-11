@@ -37,4 +37,4 @@ def test_boundary_tracer():
     I = np.array([[1,1,0], [1,0,1], [0,1,0]])
     boundary = boundary_tracer(I)
 
-    assert(boundary == {(1, 1), (1, 2), (2, 1), (2, 3), (3, 2)})
+    assert(boundary == {(0,0), (0,1), (1,2), (2,1), (1,0)})

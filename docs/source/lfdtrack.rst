@@ -5,15 +5,27 @@ lfdtrack package
 Module contents 
 ---------------
 
-fingertrack submodule 
-^^^^^^^^^^^^^^^^^^^^^
+Fingertrack 
+^^^^^^^^^^^
 
-.. automodule:: lfdtrack.fingertrack.fingertrack
+.. automodule:: lfdtrack.fingertrack
    :members:
    :undoc-members:
    :show-inheritance:
 
+
+Boundary
+^^^^^^^^
+
 .. automodule:: lfdtrack.boundary
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Capture
+^^^^^^^
+
+.. automodule:: lfdtrack.capture
    :members:
    :undoc-members:
    :show-inheritance:

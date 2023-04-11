@@ -10,3 +10,4 @@ mediapipe
 sphinx
 pytest
 tqdm
+mpl-point-clicker

@@ -1,101 +1,160 @@
 import numpy as np
-import cv2
-import matplotlib.pyplot as plt
 
 
 class Node():
-    """A node class for A* Pathfinding"""
-
-    def __init__(self, parent=None, position=None):
+    def __init__(self, state, parent, action, h=0, generation=0):
+        self.state = state
         self.parent = parent
-        self.position = position
+        self.action = action
+        
+        # Heurestics
+        
+        # Manhattan distance
+        self.h = h
+        
+        # Steps of execution
+        self.generation = generation
+        
+        # Heuristic cost
+        self.cost = self.h + self.generation
 
-        self.g = 0
-        self.h = 0
-        self.f = 0
-
-    def __eq__(self, other):
-        return self.position == other.position
-
-
-def astar(maze, start, end):
-    """Returns a list of tuples as a path from the given start to the given end in the given maze"""
-
-    # Create start and end node
-    start_node = Node(None, start)
-    start_node.g = start_node.h = start_node.f = 0
-    end_node = Node(None, end)
-    end_node.g = end_node.h = end_node.f = 0
-
-    # Initialize both open and closed list
-    open_list = []
-    closed_list = []
-
-    # Add the start node
-    open_list.append(start_node)
-
-    # Loop until you find the end
-    while len(open_list) > 0:
-
-        # Get the current node
-        current_node = open_list[0]
-        current_index = 0
-        for index, item in enumerate(open_list):
-            if item.f < current_node.f:
-                current_node = item
-                current_index = index
-
-        # Pop current off open list, add to closed list
-        open_list.pop(current_index)
-        closed_list.append(current_node)
-
-        # Found the goal
-        if current_node == end_node:
-            path = []
-            current = current_node
-            while current is not None:
-                path.append(current.position)
-                current = current.parent
-            return path[::-1] # Return reversed path
-
-        # Generate children
-        children = []
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]: # Adjacent squares
-
-            # Get node position
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
-
-            # Make sure within range
-            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
-                continue
-
-            # Make sure walkable terrain
-            if maze[node_position[0]][node_position[1]] != 1:
-                continue
-
-            # Create new node
-            new_node = Node(current_node, node_position)
-
-            # Append
-            children.append(new_node)
-
-        # Loop through children
-        for child in children:
-
-            # Child is on the closed list
-            for closed_child in closed_list:
-                if child == closed_child:
-                    continue
-
-            # Create the f, g, and h values
-            child.g = current_node.g + 1
-            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
-            child.f = child.g + child.h
-
-            # Child is already in the open list
-            for open_node in open_list:
-                if child == open_node and child.g > open_node.g:
-                    continue
-
-            # Add the child to the open list
-            open_list.append(child)
+class StackFrontier():
+    def __init__(self):
+        self.frontier = []
+        
+    def add(self, node):
+        self.frontier.append(node)
+        
+    def contains_state(self, state):
+        return any(node.state == state for node in self.frontier)
+    
+    def empty(self):
+        return len(self.frontier) == 0
+    
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+        else:
+            node = self.frontier[-1]
+            self.frontier = self.frontier[:-1]
+            return node
+        
+    def select(self):
+        """Selecting the node from the frontier based on minimum cost"""
+        node_cost = dict()
+        if self.empty():
+            raise Exception("empty frontier")
+        else:
+            for node in self.frontier:
+                node_cost[node.cost] = node
+                
+        minimum_cost = min(node_cost.keys())
+        
+        self.frontier.remove(node_cost[minimum_cost])
+        
+        return node_cost[minimum_cost]
+    
+class Astar():
+    def __init__(self, maze, start, end):
+        self.maze = np.array(maze)
+        self.start = start
+        self.end = end
+        
+        self.height = self.maze.shape[0]
+        self.width = self.maze.shape[1]
+        
+        # Keep track of walls
+        self.walls = []
+        for i in range(self.height):
+            row = []
+            for j in range(self.width):
+                try:
+                    if maze[i][j] == 0:
+                        row.append(True)
+                    else:
+                        row.append(False)
+                except IndexError:
+                    row.append(True)
+            self.walls.append(row)
+            
+        self.solution = None
+        
+    def neighbors(self, state):
+        row, col = state
+        
+        candidates = [
+            ("n", (row - 1, col)),
+            ("s", (row + 1, col)),
+            ("w", (row, col - 1 )),
+            ("e", (row, col + 1)),
+            ("ne", (row - 1, col + 1)),
+            ("se", (row + 1, col + 1)),
+            ("nw", (row - 1, col - 1)),
+            ("sw", (row + 1, col - 1))
+        ]
+        
+        result = []
+        
+        for action, (r, c) in candidates:
+            if 0 <= r < self.height and 0 <= c < self.width and not self.walls[r][c]:
+                result.append((action, (r,c)))
+        return result
+    
+    def solve(self, verbose=True):
+        """Finds a solution to maze, if one exists."""
+        
+        # Keep track of number of states explored
+        self.num_explored = 0
+        
+        # Initialize frontier to just the starting state
+        start = Node(state=self.start, parent=None, action=None, generation=0)
+        frontier = StackFrontier()
+        frontier.add(start)
+        
+        # Initialize an empty explored set
+        self.explored = set()
+        
+        # Keep looping until solution is found
+        while True:
+            # If nothing left in frontier, then no path
+            if frontier.empty():
+                raise Exception("no solution")
+                
+            # Choose a node from the frontier
+            node = frontier.select()
+            self.num_explored += 1
+        
+            if verbose:
+                print(f"Node state: {node.state}, manhattan distance: {node.h}, generation: {node.generation}, cost: {node.cost}")
+            
+            # If node is the goal, then we have a solution
+            if node.state == self.end:
+                actions = []
+                cells = []
+                
+                while node.parent is not None:
+                    actions.append(node.action)
+                    cells.append(node.state)
+                    node = node.parent
+                
+                actions.reverse()
+                cells.reverse()
+                self.solution = (actions, cells)
+                return
+            
+            # Mark node as explored
+            self.explored.add(node.state) 
+            
+            # Add neighbors to frontier
+            for action, state in self.neighbors(node.state):
+                if not frontier.contains_state(state) and state not in self.explored:
+                    # calculating manhattan distance h()
+                    manhattan_distance = np.abs(state[0] - self.end[0]) + np.abs(state[1] - self.end[1])
+                    
+                    child = Node(state=state, 
+                                 parent=node,
+                                 action=action,
+                                 h=manhattan_distance, 
+                                 generation=node.generation+1)
+                                
+                    frontier.add(child)

@@ -2,21 +2,21 @@ import numpy as np
 
 
 class Node():
-    def __init__(self, state, parent, action, h=0, generation=0):
+    def __init__(self, state, parent, action, distance=0, generation=0):
         self.state = state
         self.parent = parent
         self.action = action
         
         # Heurestics
         
-        # Manhattan distance
-        self.h = h
+        # distance
+        self.distance = distance
         
         # Steps of execution
         self.generation = generation
         
         # Heuristic cost
-        self.cost = self.h + self.generation
+        self.cost = self.distance + self.generation
 
 class StackFrontier():
     def __init__(self):
@@ -53,7 +53,7 @@ class StackFrontier():
         self.frontier.remove(node_cost[minimum_cost])
         
         return node_cost[minimum_cost]
-    
+
 class Astar():
     def __init__(self, maze, start, end):
         self.maze = np.array(maze)
@@ -125,7 +125,7 @@ class Astar():
             self.num_explored += 1
         
             if verbose:
-                print(f"Node state: {node.state}, manhattan distance: {node.h}, generation: {node.generation}, cost: {node.cost}")
+                print(f"Node state: {node.state}, distance: {node.distance}, generation: {node.generation}, cost: {node.cost}")
             
             # If node is the goal, then we have a solution
             if node.state == self.end:
@@ -148,13 +148,13 @@ class Astar():
             # Add neighbors to frontier
             for action, state in self.neighbors(node.state):
                 if not frontier.contains_state(state) and state not in self.explored:
-                    # calculating manhattan distance h()
-                    manhattan_distance = np.abs(state[0] - self.end[0]) + np.abs(state[1] - self.end[1])
+                    # calculating distance
+                    distance = (state[0] - self.end[0])**2 + (state[1] - self.end[1])**2
                     
                     child = Node(state=state, 
                                  parent=node,
                                  action=action,
-                                 h=manhattan_distance, 
+                                 distance=distance, 
                                  generation=node.generation+1)
                                 
                     frontier.add(child)

@@ -261,11 +261,11 @@ def region_box_coords(image, x_vals, y_vals, scaling_factor=100):
     for x, y in zip(x_vals, y_vals):
         # x padding
         x1 = x-sf if x-sf > 0 else 0
-        x2 = x+sf if x+sf < img_width else img_width
+        x2 = x+sf if x+sf < img_width else img_width - 1
         
         # y padding
         y1 = y-sf if y-sf > 0 else 0
-        y2 = y+sf if y-sf < img_height else img_height
+        y2 = y+sf if y+sf < img_height else img_height - 1
               
         # Adding the scaling values to the padding list
         x_pad.append(x1)

@@ -21,3 +21,7 @@ from .plotters import *
 import lfdtrack.search
 from lfdtrack.search import *
 from .search import *
+
+import lfdtrack.vocannot 
+from lfdtrack.vocannot import *
+from .vocannot import *

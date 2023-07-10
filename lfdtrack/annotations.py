@@ -211,3 +211,121 @@ class VOC:
                         file.write('%s' % c)
                         file.write(' ')
                     file.write('\n')
+
+class Panoptic:
+    def __init__(self, data):
+        """Panoptic class that takes annotation pickle file.
+        
+        Attributes
+        ----------
+        data: dict
+            A dictionary of data stored as a json file.
+            Ideally, to work in Jupyter notebook load json file as a dict in ipython console.
+            Save it as a pickle file and then import it before adding as an attribute to the object
+            of this class
+        
+        """
+        
+        self.data = data['root']        
+        self.yolo_annot = dict()
+        self.image_shape = dict()
+        self.bounding_boxes = dict()
+        self.images = dict()
+        
+    def _get_joints(self):
+        """Gets x and y coordinates"""
+        
+        for d in self.data:
+            landmarks = d['joint_self']
+            
+            x = []
+            y = []
+            
+            for landmark in landmarks:
+                x.append(landmark[0])
+                y.append(landmark[1])
+                
+            xmin = np.min(x)
+            ymin = np.min(y)
+            xmax = np.max(x)
+            ymax = np.max(y)
+            
+            W = d['img_width']
+            H = d['img_height']
+            
+            yolo_coord = [0, 
+                          (xmin + (xmax - xmin)/2)/W, 
+                          (ymin + (ymax - ymin)/2)/H, 
+                          (xmax - xmin)/W,
+                          (ymax - ymin)/H
+                         ]
+            
+            filename = re.split('\W+', d['img_paths'])
+            
+            self.yolo_annot[filename[1]] = yolo_coord
+            
+            # Storing image shape 
+            self.image_shape[filename[1]] = (H, W)
+            
+            # Bounding boxes | format: [xmin, ymin, xmax, ymax]
+            self.bounding_boxes[filename[1]] = [xmin, ymin, xmax, ymax]
+            
+            
+    def get_images(self, images_path, image_extension='.jpg', verbose=False):
+        """Gets the images from the directory.
+        Use this function only if necessary, because if the data consists of large
+        number of images, then the jupyter notebook will likely crash.
+        
+        Parameters
+        ----------
+        images_path: str
+            The file path where the images are stored.
+        image_extension: str, default ``.jpg``
+            The extension of the file in the directory to read.
+        verbose: bool, default ``False``
+            Shows the message in the console about the processing steps.
+        """
+        filename = list(self.image_shape.keys())
+        
+        for f in filename:
+            image_path = os.path.join(self.images_path, f + self.image_extension)
+            if self.verbose:
+                print(f"Reading: {image_path}")
+                
+            image = cv2.imread(image_path)
+            self.images[f] = image
+    
+    def run(self):
+        """Runs the Panoptic model"""
+        
+        self._get_joints()
+        
+    def save(self, save_path='.', directory='labels', label_extension='.txt'):
+        """Saves the labels.
+        
+        Parameters
+        ----------
+        save_path: str, default ``'.'``
+            The path where the result directory and files are to be saved.
+        directory: str, default ``'labels'``
+            The directory name under which the labels text files are to be saved.
+        label_extension: str, default ``'.txt'``
+            The extension with which to save the yolo annotation in a text file.
+        
+        """
+        
+        labels_path = os.path.join(save_path, directory)
+        
+        if not os.path.exists(labels_path):
+            os.makedirs(labels_path)
+            print(f"New directory {directory} created at {labels_path}")
+            
+        for k, v in self.yolo_annot.items():
+            label_file = os.path.join(labels_path, k + label_extension)
+            
+            yolo_annotation = self.yolo_annot[k]
+            
+            with open(label_file, 'w') as file:
+                for c in yolo_annotation:
+                    file.write('%s' % c)
+                    file.write(' ')

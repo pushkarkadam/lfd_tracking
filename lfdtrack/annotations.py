@@ -5,7 +5,7 @@ import os
 import xml.etree.ElementTree as ET 
 
 
-class Annotation:
+class VOC:
     def __init__(self,
                  dir_path,
                  images_path,

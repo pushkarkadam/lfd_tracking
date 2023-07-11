@@ -213,8 +213,7 @@ class VOC:
                     file.write('\n')
 
 class Panoptic:
-    def __init__(self, data):
-        """Panoptic class that takes annotation pickle file.
+    """Panoptic class that takes annotation pickle file.
         
         Attributes
         ----------
@@ -224,8 +223,21 @@ class Panoptic:
             Save it as a pickle file and then import it before adding as an attribute to the object
             of this class
         
+        Methods
+        -------
+        get_images(images_path, image_extension='.jpg', verbose=False)
+            Gets all the images from the ``images_path``
+            
+        run()
+            Runs all the methods to populate the attributes
+            
+        save(save_path='.', directory='labels', label_extension='.txt')
+            Save the labels
+            
+        save_as_pickle(file_path)
+            Save the object as a pickle file.
         """
-        
+    def __init__(self, data):
         self.data = data['root']        
         self.yolo_annot = dict()
         self.image_shape = dict()
@@ -329,3 +341,19 @@ class Panoptic:
                 for c in yolo_annotation:
                     file.write('%s' % c)
                     file.write(' ')
+                    
+    def save_as_pickle(self, filepath='.', filename='pan_yolo.pickle'):
+        """Save the object as a pickle file
+        
+        Parameters
+        ----------
+        filepath: str, default ``'.'``
+            The filepath where to store the object
+        filename: str, default ``'pan_yolo.pickle'``
+            The filename to store pickle file
+        """
+        
+        file_path = os.path.join(filepath, filename)
+        
+        with open(file_path, 'wb') as file:
+            pickle.dump(self, file)

@@ -301,8 +301,8 @@ class Panoptic:
         filename = list(self.image_shape.keys())
         
         for f in filename:
-            image_path = os.path.join(self.images_path, f + self.image_extension)
-            if self.verbose:
+            image_path = os.path.join(images_path, f + image_extension)
+            if verbose:
                 print(f"Reading: {image_path}")
                 
             image = cv2.imread(image_path)

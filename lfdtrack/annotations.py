@@ -241,6 +241,7 @@ class Panoptic:
     def __init__(self, data):
         self.data = data['root']        
         self.yolo_annot = dict()
+        self.yolo_pose = dict()
         self.image_shape = dict()
         self.bounding_boxes = dict()
         self.images = dict()
@@ -254,17 +255,23 @@ class Panoptic:
             x = []
             y = []
             
+            pose = []
+            
+            W = d['img_width']
+            H = d['img_height']
+            
             for landmark in landmarks:
                 x.append(landmark[0])
                 y.append(landmark[1])
+                
+                # Appending pose coordinates 
+                pose.append(landmark[0]/W)
+                pose.append(landmark[1]/H)
                 
             xmin = np.min(x)
             ymin = np.min(y)
             xmax = np.max(x)
             ymax = np.max(y)
-            
-            W = d['img_width']
-            H = d['img_height']
             
             yolo_coord = [0, 
                           (xmin + (xmax - xmin)/2)/W, 
@@ -273,9 +280,12 @@ class Panoptic:
                           (ymax - ymin)/H
                          ]
             
+            pose_coord = yolo_coord + pose
+            
             filename = re.split('\W+', d['img_paths'])
             
             self.yolo_annot[filename[1]] = yolo_coord
+            self.yolo_pose[filename[1]] = pose_coord
             
             # Storing image shape 
             self.image_shape[filename[1]] = (H, W)
@@ -301,8 +311,8 @@ class Panoptic:
         filename = list(self.image_shape.keys())
         
         for f in filename:
-            image_path = os.path.join(images_path, f + image_extension)
-            if verbose:
+            image_path = os.path.join(images_path, f + self.image_extension)
+            if self.verbose:
                 print(f"Reading: {image_path}")
                 
             image = cv2.imread(image_path)
@@ -313,7 +323,7 @@ class Panoptic:
         
         self._get_joints()
         
-    def save(self, save_path='.', directory='labels', label_extension='.txt'):
+    def save(self, save_path='.', directory='labels', label_extension='.txt', annotations=dict()):
         """Saves the labels.
         
         Parameters
@@ -324,6 +334,8 @@ class Panoptic:
             The directory name under which the labels text files are to be saved.
         label_extension: str, default ``'.txt'``
             The extension with which to save the yolo annotation in a text file.
+        annotations: dict, default ``dict()``
+            A dictionary of annotations.
         
         """
         
@@ -333,15 +345,16 @@ class Panoptic:
             os.makedirs(labels_path)
             print(f"New directory {directory} created at {labels_path}")
             
-        for k, v in self.yolo_annot.items():
+        for k, v in annotations.items():
             label_file = os.path.join(labels_path, k + label_extension)
             
-            yolo_annotation = self.yolo_annot[k]
+            yolo_annotation = annotations[k]
             
             with open(label_file, 'w') as file:
                 for c in yolo_annotation:
                     file.write('%s' % c)
                     file.write(' ')
+                    
                     
     def save_as_pickle(self, filepath='.', filename='pan_yolo.pickle'):
         """Save the object as a pickle file

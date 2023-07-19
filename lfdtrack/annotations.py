@@ -370,3 +370,106 @@ class Panoptic:
         
         with open(file_path, 'wb') as file:
             pickle.dump(self, file)
+
+class PanopticManual(Panoptic):
+    """Manual annotation to YOLO conversion"""
+    
+    def __init__(self, data_path, image_extension='.jpg'):
+        self.data_path = data_path
+        self.image_extension = image_extension
+        
+        self.files = sorted([f for f in os.listdir(data_path) if f.endswith('.json')])
+        
+        self.file_names = [re.split('\W+', f)[0] for f in self.files]
+        
+        self.data = dict()
+        
+        self.yolo_pose = dict()
+        
+        self.yolo_annot = dict()
+        
+        self.image_shape = dict()
+        self.bounding_boxes = dict()
+        
+        
+        for f, fn in zip(self.files, self.file_names):
+            with open(os.path.join(data_path, f), 'r') as fid:
+                self.data[fn] = json.load(fid)
+            
+        
+        for fn in self.file_names:
+            image_name = fn + image_extension
+            try:
+                image = cv2.imread(os.path.join(data_path, image_name), 0)
+
+                H, W = image.shape
+
+                landmarks = self.data[fn]['hand_pts']
+
+                x = []
+                y = []
+
+                pose = []
+
+                for landmark in landmarks:
+                    x_n = landmark[0] / W
+                    y_n = landmark[1] / H
+
+                    x.append(x_n)
+                    y.append(y_n)
+
+                    pose.append(x_n)
+                    pose.append(y_n)
+
+                # Selecting the boundary coordinates for bounding box
+                xmin = np.min(x)
+                ymin = np.min(y)
+                xmax = np.max(x)
+                ymax = np.max(y)
+
+                yolo_coord = [0, 
+                              (xmin + (xmax - xmin)/2)/W, 
+                              (ymin + (ymax - ymin)/2)/H, 
+                              (xmax - xmin)/W,
+                              (ymax - ymin)/H
+                             ]
+
+                pose_coord = yolo_coord + pose
+
+                self.yolo_annot[fn] = yolo_coord
+                self.yolo_pose[fn] = pose_coord
+
+                self.image_shape[fn] = (H, W)
+
+                self.bounding_boxes[fn] = [xmin, ymin, xmax, ymax]
+            except:
+                continue
+                
+    def read_write_images(self, save_path='.', directory='images'):
+        """Reads the image from the directory and writes them.
+        
+        Parameters
+        ----------
+        save_path: str, default ``'.'``
+            The path where the result directory and files are to be saved.
+        directory: str, default ``'labels'``
+            The directory name under which the labels text files are to be saved.
+        
+        """
+        
+        image_dir_path = os.path.join(save_path, directory)
+        
+        if not os.path.exists(image_dir_path):
+            os.makedirs(image_dir_path)
+            print(f"New directory {directory} created at {image_dir_path}")
+        
+        for fn in self.file_names:
+            image_path = os.path.join(self.data_path, fn + self.image_extension)
+            image_save_path = os.path.join(image_dir_path, fn + self.image_extension)
+            print(image_save_path)
+            
+            try:
+                image = cv2.imread(image_path)
+                cv2.imwrite(image_save_path, image)
+            except:
+                continue

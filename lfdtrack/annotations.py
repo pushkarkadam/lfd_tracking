@@ -354,8 +354,7 @@ class Panoptic:
                 for c in yolo_annotation:
                     file.write('%s' % c)
                     file.write(' ')
-                    
-                    
+                     
     def save_as_pickle(self, filepath='.', filename='pan_yolo.pickle'):
         """Save the object as a pickle file
         

@@ -429,10 +429,10 @@ class PanopticManual(Panoptic):
                 ymax = np.max(y)
 
                 yolo_coord = [0, 
-                              (xmin + (xmax - xmin)/2)/W, 
-                              (ymin + (ymax - ymin)/2)/H, 
-                              (xmax - xmin)/W,
-                              (ymax - ymin)/H
+                              (xmin + (xmax - xmin)/2), 
+                              (ymin + (ymax - ymin)/2), 
+                              (xmax - xmin),
+                              (ymax - ymin)
                              ]
 
                 pose_coord = yolo_coord + pose

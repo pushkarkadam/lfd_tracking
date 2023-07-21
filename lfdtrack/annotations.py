@@ -5,6 +5,7 @@ import os
 import xml.etree.ElementTree as ET 
 import re
 import json
+import random
 
 
 class VOC:
@@ -373,7 +374,62 @@ class Panoptic:
             pickle.dump(self, file)
 
 class PanopticManual(Panoptic):
-    """Manual annotation to YOLO conversion"""
+    """Manual annotation to YOLO conversion,
+    
+    Parameters
+    ----------
+    data_path: str
+        Path where the root directory for data is located.
+    image_extension: str, default ``'.jpg'``
+        Image extension
+    
+    Attributes
+    ----------
+    data_path: str
+        The root path for the directory where the images and json files are stored.
+    image_extension: str
+        The extension of the image files in the data directory
+    files: list
+        A list of the data files that end with json extension.
+    file_names: list
+        A list of str file name without the file extension.
+        This is helpful as the image and data files have same names but different extension.
+    data: dict
+        A dictionary that stores the data for all the images together.
+        The key is the element from ``file_names`` and the value is a dict with data from json files.
+    yolo_pose: dict
+        A dictionary that stores the yolo pose data.
+        The keys are the element from ``file_names`` and the value is a list.
+        The data format for pose is a list: ``[class x y w h px0 py0 px1 py1 ... px20 py21]``
+        The total number of elements in the yolo pose list is (5 + 2 * 21) = 47 elements (5 yolo and 21 (x,y) landmark)
+    yolo_annot: dict
+        A dictionary that stores yolo annotation.
+        The keys are the element from ``file_names`` and the value is a list.
+        The data format for pose is a list: ``[class x y w h]``
+        The total number of element in yolo annotation list are 5.
+    image_shape: dict
+        A dictionary that maps ``file_names`` to the tuple of image shape.
+    bounding_boxes: dict
+        A dictionary that maps ``file_names`` to bounding box coordinates.
+    EDGES: list
+        A list that is contains the edges of the graph of hand landmark.
+        
+    Methods
+    -------
+    read_write_images(save_path='.', directory='images')
+        Reads the image from the ``data_path`` and stores them in ``directory`` of the ``save_path``.
+    bbox_from_yolo(dims, coords)
+        Converts YOLO coordinates to bounding box.
+    read_images(files)
+        Returns a list of images from the file names mentioned in a list of ``files``.
+    bounding_box_check(save=False, filename="results.png")
+        Performs a sanity check by providing qualitative results to bounding box from YOLO coordinates.
+        This is essential step to visually check if the yolo coordinates can properly represent the object.
+    hand_landmark_check(save=False, filename='landmark_results.png')
+        Performs a sanity check by providing qualitative results to hand landmark from YOLO pose annotations.
+        This is essential to visually check if the yolo pose annotations are correct.
+    
+    """
     
     def __init__(self, data_path, image_extension='.jpg'):
         self.data_path = data_path
@@ -390,8 +446,14 @@ class PanopticManual(Panoptic):
         self.yolo_annot = dict()
         
         self.image_shape = dict()
+        
         self.bounding_boxes = dict()
         
+        self.EDGES = [[0,1], [1,2], [2,3], [3,4], 
+                      [0,5], [5,6], [6,7], [7,8], 
+                      [0,9], [9,10],[10,11], [11,12],
+                      [0,13],[13,14], [14,15], [15,16], 
+                      [0,17],[17,18], [18,19], [19,20]]
         
         for f, fn in zip(self.files, self.file_names):
             with open(os.path.join(data_path, f), 'r') as fid:
@@ -474,3 +536,132 @@ class PanopticManual(Panoptic):
                 cv2.imwrite(image_save_path, image)
             except:
                 continue
+                   
+    def bbox_from_yolo(self, dims, coords):
+        """Returns the bounding box vertices"""
+    
+        x, y, w, h = dims
+        H, W = coords
+
+        X = x * W
+        Y = y * H
+        Wb = w * W
+        Hb = h * H
+
+        xmin = X - Wb/2
+        ymin = Y - Hb/2
+        xmax = X + Wb/2
+        ymax = Y + Hb/2
+
+        verts = [(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)]
+
+        return verts
+    
+    def read_images(self, files):
+        """Returns a list of image file from list of files.
+        
+        Parameters
+        ----------
+        files: list
+            A list of file names
+        
+        """ 
+        images = dict()
+        
+        
+        for idx, file in enumerate(files):
+            image_path = os.path.join(self.data_path, file + self.image_extension)
+            img = cv2.imread(image_path)
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            images[file] = img_rgb
+            
+        return images
+    
+    def bounding_box_check(self, save=False, filename="results.png"):
+        """Checks the bounding box by showing samples of the implementation"""
+        
+        vertices = []
+        sample_yolo_annot = []
+        sample_image_shapes = []
+        
+        files = random.choices(list(self.yolo_pose.keys()), k=9)
+        
+        for f in files:
+            sample_yolo_annot.append(self.yolo_pose[f][1:5])
+            sample_image_shapes.append(self.image_shape[f])
+            
+        for f, a, s in zip(files, sample_yolo_annot, sample_image_shapes):
+            vertices.append(self.bbox_from_yolo(a, s))
+            
+            
+        vertices_np = [np.array(v, dtype=np.int32).reshape((4,2)) for v in vertices]
+        
+        images = self.read_images(files)
+                
+        fig = plt.figure(figsize=(10, 10))
+
+        for i in range(len(files)):
+            ax = fig.add_subplot(3, 3, i+1)
+            cv2.polylines(images[files[i]], [vertices_np[i]], isClosed=True, color=(255,0,0), thickness=5)
+            plt.imshow(images[files[i]])
+            plt.title(files[i])
+            plt.axis('off')
+        
+        if save:
+            fig.savefig(filename)
+                   
+    def hand_landmark_check(self, save=False, filename='landmark_results.png'):
+        """Checks the hand landmark by selecting samples.
+        
+        Parameters
+        ----------
+        save: bool, default ``False``
+            Saves the images.
+        filename: str, default ``'landmark_results.png'``
+            Filename to be saved.
+            
+        """
+        
+        files = random.choices(list(self.yolo_pose.keys()), k=9)
+        
+        uv = dict()
+        count = 5
+        
+        for f in files:
+            landmarks = self.yolo_pose[f][5:]
+            uv[f] = []
+            
+            i = 0
+            while i < int(len(landmarks)):
+                scaling = np.multiply(landmarks[i:i+2], list(self.image_shape[f]))
+                uv[f].append(np.array(scaling, np.int32))
+                i+=2
+            
+            uv[f] = np.array(uv[f])
+                
+        images = self.read_images(files)
+
+        rendered_images = dict()
+        
+        for f in files:
+            rendered_images[f] = []
+            for c in self.EDGES:
+
+                rendered_image = cv2.line(images[f], uv[f][c[0]], uv[f][c[1]], (255, 0, 0), 2)
+                rendered_images[f] = rendered_image
+                
+                
+        for f in files:
+            for point in uv[f]:
+                rendered_images[f] = cv2.circle(rendered_images[f], point, 2, (0, 0, 255), -1)
+        
+        fig = plt.figure(figsize=(10, 10))
+        
+        for idx, f in enumerate(files):
+            ax = fig.add_subplot(3,3, idx+1)
+            plt.imshow(rendered_images[f])
+            plt.title(f)
+            plt.axis('off')
+            
+        if save:
+            fig.savefig(filename)

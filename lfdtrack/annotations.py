@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 import re
 import json
 import random
+import matplotlib.pyplot as plt
 
 
 class VOC:

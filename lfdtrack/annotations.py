@@ -17,7 +17,7 @@ class VOC:
                 ):
         """Extracts the annotation of VOC dataset into YOLO format.
 
-        Attributes
+        Parameters
         ----------
         dir_path: str
             The path to the directory where the annotation data is stored.
@@ -30,6 +30,22 @@ class VOC:
         img_ext: str, default ``'.jpg'``
             The extension of the image from the directory that should be read.
             The VOC dataset has all the images as ``.jpg`` format.
+        
+        Attributes
+        ----------
+        roots: list
+            A list of the annotations from its root structure.
+        bboxes: dict
+            A dictionary that maps the image name to bounding boxes.
+        objects_bboxes: dict
+            A dictionary that maps the object bounding box.
+        yolo_annot: dict
+            A dictionary that stores yolo annotation.
+            The keys are the element from ``file_names`` and the value is a list.
+            The data format for pose is a list: ``[class x y w h]``
+            The total number of element in yolo annotation list are 5.
+        image_shape: dict
+            A dictionary that maps ``file_names`` to the tuple of image shape.
 
         """
         
@@ -225,20 +241,35 @@ class Panoptic:
             Ideally, to work in Jupyter notebook load json file as a dict in ipython console.
             Save it as a pickle file and then import it before adding as an attribute to the object
             of this class
-        
+
+        yolo_annot: dict
+            A dictionary that stores yolo annotation.
+            The keys are the element from ``file_names`` and the value is a list.
+            The data format for pose is a list: ``[class x y w h]``
+            The total number of element in yolo annotation list are 5.
+        yolo_pose: dict
+            A dictionary that stores the yolo pose data.
+            The keys are the element from ``file_names`` and the value is a list.
+            The data format for pose is a list: ``[class x y w h px0 py0 px1 py1 ... px20 py21]``
+            The total number of elements in the yolo pose list is (5 + 2 * 21) = 47 elements (5 yolo and 21 (x,y) landmark)
+        image_shape: dict
+            A dictionary that maps ``file_names`` to the tuple of image shape.
+        bounding_boxes: dict
+            A dictionary that maps ``file_names`` to bounding box coordinates.
+        images:
+            A dictionary that maps the ``file_names`` to images.
+
         Methods
         -------
         get_images(images_path, image_extension='.jpg', verbose=False)
-            Gets all the images from the ``images_path``
-            
+            Gets all the images from the ``images_path`` 
         run()
             Runs all the methods to populate the attributes
-            
         save(save_path='.', directory='labels', label_extension='.txt')
             Save the labels
-            
         save_as_pickle(file_path)
             Save the object as a pickle file.
+
         """
     def __init__(self, data):
         self.data = data['root']        

@@ -568,7 +568,6 @@ class PanopticManual(Panoptic):
         """ 
         images = dict()
         
-        
         for idx, file in enumerate(files):
             image_path = os.path.join(self.data_path, file + self.image_extension)
             img = cv2.imread(image_path)
@@ -646,11 +645,9 @@ class PanopticManual(Panoptic):
         for f in files:
             rendered_images[f] = []
             for c in self.EDGES:
-
                 rendered_image = cv2.line(images[f], uv[f][c[0]], uv[f][c[1]], (255, 0, 0), 2)
                 rendered_images[f] = rendered_image
-                
-                
+                  
         for f in files:
             for point in uv[f]:
                 rendered_images[f] = cv2.circle(rendered_images[f], point, 2, (0, 0, 255), -1)

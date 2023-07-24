@@ -445,6 +445,10 @@ class PanopticManual(Panoptic):
         A dictionary that maps ``file_names`` to bounding box coordinates.
     EDGES: list
         A list that is contains the edges of the graph of hand landmark.
+    sample_files: list
+        A list of filenames with str values.
+    seed: int, default ``0``
+        A seed value for the random sample selection.
         
     Methods
     -------
@@ -463,9 +467,13 @@ class PanopticManual(Panoptic):
     
     """
     
-    def __init__(self, data_path, image_extension='.jpg'):
+    def __init__(self, data_path, image_extension='.jpg', seed=0):
         self.data_path = data_path
+        
         self.image_extension = image_extension
+        
+        # Setting the seed for random sampling
+        self.seed = seed
         
         self.files = sorted([f for f in os.listdir(data_path) if f.endswith('.json')])
         
@@ -480,6 +488,8 @@ class PanopticManual(Panoptic):
         self.image_shape = dict()
         
         self.bounding_boxes = dict()
+        
+        self.sample_files = []
         
         self.EDGES = [[0,1], [1,2], [2,3], [3,4], 
                       [0,5], [5,6], [6,7], [7,8], 
@@ -615,27 +625,29 @@ class PanopticManual(Panoptic):
         sample_yolo_annot = []
         sample_image_shapes = []
         
-        files = random.choices(list(self.yolo_pose.keys()), k=9)
+        if not self.sample_files:
+            self.sample_files = random.choices(list(self.yolo_pose.keys()), k=9)
         
-        for f in files:
+        for f in self.sample_files:
             sample_yolo_annot.append(self.yolo_pose[f][1:5])
             sample_image_shapes.append(self.image_shape[f])
             
-        for f, a, s in zip(files, sample_yolo_annot, sample_image_shapes):
+        for f, a, s in zip(self.sample_files, sample_yolo_annot, sample_image_shapes):
             vertices.append(self.bbox_from_yolo(a, s))
             
             
         vertices_np = [np.array(v, dtype=np.int32).reshape((4,2)) for v in vertices]
         
-        images = self.read_images(files)
+        # Reads all the images from a list of files
+        images = self.read_images(self.sample_files)
                 
         fig = plt.figure(figsize=(10, 10))
 
-        for i in range(len(files)):
+        for i in range(len(self.sample_files)):
             ax = fig.add_subplot(3, 3, i+1)
-            cv2.polylines(images[files[i]], [vertices_np[i]], isClosed=True, color=(255,0,0), thickness=5)
-            plt.imshow(images[files[i]])
-            plt.title(files[i])
+            cv2.polylines(images[self.sample_files[i]], [vertices_np[i]], isClosed=True, color=(255,0,0), thickness=5)
+            plt.imshow(images[self.sample_files[i]])
+            plt.title(self.sample_files[i])
             plt.axis('off')
         
         if save:
@@ -653,12 +665,12 @@ class PanopticManual(Panoptic):
             
         """
         
-        files = random.choices(list(self.yolo_pose.keys()), k=9)
+        if not self.sample_files:
+            self.sample_files = random.sample(list(self.yolo_pose.keys()), k=9)
         
         uv = dict()
-        count = 5
         
-        for f in files:
+        for f in self.sample_files:
             landmarks = self.yolo_pose[f][5:]
             uv[f] = []
             
@@ -670,23 +682,24 @@ class PanopticManual(Panoptic):
             
             uv[f] = np.array(uv[f])
                 
-        images = self.read_images(files)
+        images = self.read_images(self.sample_files)
 
         rendered_images = dict()
         
-        for f in files:
+        for f in self.sample_files:
             rendered_images[f] = []
             for c in self.EDGES:
                 rendered_image = cv2.line(images[f], uv[f][c[0]], uv[f][c[1]], (255, 0, 0), 2)
                 rendered_images[f] = rendered_image
-                  
-        for f in files:
+                
+                
+        for f in self.sample_files:
             for point in uv[f]:
                 rendered_images[f] = cv2.circle(rendered_images[f], point, 2, (0, 0, 255), -1)
         
         fig = plt.figure(figsize=(10, 10))
         
-        for idx, f in enumerate(files):
+        for idx, f in enumerate(self.sample_files):
             ax = fig.add_subplot(3,3, idx+1)
             plt.imshow(rendered_images[f])
             plt.title(f)

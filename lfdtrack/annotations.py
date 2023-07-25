@@ -465,13 +465,15 @@ class PanopticManual(Panoptic):
     
     """
     
-    def __init__(self, data_path, image_extension='.jpg', seed=0):
+    def __init__(self, data_path, image_extension='.jpg', seed=0, invert_coords=False):
         self.data_path = data_path
         
         self.image_extension = image_extension
         
         # Setting the seed for random sampling
         self.seed = seed
+        
+        self.invert_coords = invert_coords
         
         self.files = sorted([f for f in os.listdir(data_path) if f.endswith('.json')])
         
@@ -486,7 +488,6 @@ class PanopticManual(Panoptic):
         self.image_shape = dict()
         
         self.bounding_boxes = dict()
-        
         
         self.sample_files = []
         
@@ -560,7 +561,6 @@ class PanopticManual(Panoptic):
             The directory name under which the labels text files are to be saved.
         
         """
-        
         image_dir_path = os.path.join(save_path, directory)
         
         if not os.path.exists(image_dir_path):
@@ -579,7 +579,20 @@ class PanopticManual(Panoptic):
                 continue
                    
     def bbox_from_yolo(self, dims, coords):
-        """Returns the bounding box vertices"""
+        """Returns the bounding box vertices.
+        
+        Parameters
+        ----------
+        dims: list
+            The x, y, w, h coordinates as a list.
+        coords: tuple
+            The height and width of the image (row, col).
+
+        Returns
+        -------
+        list:
+            A list of vertices.
+        """
     
         x, y, w, h = dims
         H, W = coords
@@ -608,7 +621,6 @@ class PanopticManual(Panoptic):
         
         """ 
         images = dict()
-        
         
         for idx, file in enumerate(files):
             image_path = os.path.join(self.data_path, file + self.image_extension)
@@ -665,7 +677,7 @@ class PanopticManual(Panoptic):
         if save:
             fig.savefig(filename)
                    
-    def hand_landmark_check(self, save=False, filename='landmark_results.png', sample_size=9, invert_coords=False):
+    def hand_landmark_check(self, save=False, filename='landmark_results.png', sample_size=9):
         """Checks the hand landmark by selecting samples.
         
         Parameters
@@ -676,9 +688,6 @@ class PanopticManual(Panoptic):
             Filename to be saved.
         sample_size: int, default ``9``
             Sample size to select 
-        invert_coords: bool, default ``False``
-            Inverts the shape coordinates for the image.
-            This is because for non-synthetic image data, the coordinates are stored as y, x.
             
         """
         if not self.sample_files:
@@ -694,11 +703,8 @@ class PanopticManual(Panoptic):
             
             i = 0
             while i < int(len(landmarks)):
-                if invert_coords:
-                    m1, m2 = self.image_shape[f][::-1]
-                else:
-                    m1, m2 = self.image_shape[f]
-                scaling = np.multiply(landmarks[i:i+2], list((m1, m2)))
+                H, W = self.image_shape[f]
+                scaling = np.multiply(landmarks[i:i+2], list((W, H)))
                 uv[f].append(np.array(scaling, np.int32))
                 i+=2
             

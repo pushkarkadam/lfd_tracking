@@ -447,8 +447,6 @@ class PanopticManual(Panoptic):
         A list that is contains the edges of the graph of hand landmark.
     sample_files: list
         A list of filenames with str values.
-    seed: int, default ``0``
-        A seed value for the random sample selection.
         
     Methods
     -------
@@ -488,6 +486,7 @@ class PanopticManual(Panoptic):
         self.image_shape = dict()
         
         self.bounding_boxes = dict()
+        
         
         self.sample_files = []
         
@@ -610,6 +609,7 @@ class PanopticManual(Panoptic):
         """ 
         images = dict()
         
+        
         for idx, file in enumerate(files):
             image_path = os.path.join(self.data_path, file + self.image_extension)
             img = cv2.imread(image_path)
@@ -618,15 +618,27 @@ class PanopticManual(Panoptic):
             
         return images
     
-    def bounding_box_check(self, save=False, filename="results.png"):
-        """Checks the bounding box by showing samples of the implementation"""
+    def bounding_box_check(self, save=False, filename="results.png", sample_size=9):
+        """Checks the bounding box by showing samples of the implementation.
         
+        Parameters
+        ----------
+        save: bool, default ``False``
+            Saves the images
+        filename: str, default ``'results.png'``
+            Filename to be saved.
+        sample_size: int, default ``9``
+            Sample size to select
+        
+        """
         vertices = []
         sample_yolo_annot = []
         sample_image_shapes = []
         
         if not self.sample_files:
-            self.sample_files = random.choices(list(self.yolo_pose.keys()), k=9)
+            if sample_size > 9:
+                sample_size = 9
+            self.sample_files = random.choices(list(self.yolo_pose.keys()), k=sample_size)
         
         for f in self.sample_files:
             sample_yolo_annot.append(self.yolo_pose[f][1:5])
@@ -653,7 +665,7 @@ class PanopticManual(Panoptic):
         if save:
             fig.savefig(filename)
                    
-    def hand_landmark_check(self, save=False, filename='landmark_results.png'):
+    def hand_landmark_check(self, save=False, filename='landmark_results.png', sample_size=9, invert_coords=False):
         """Checks the hand landmark by selecting samples.
         
         Parameters
@@ -662,11 +674,17 @@ class PanopticManual(Panoptic):
             Saves the images.
         filename: str, default ``'landmark_results.png'``
             Filename to be saved.
+        sample_size: int, default ``9``
+            Sample size to select 
+        invert_coords: bool, default ``False``
+            Inverts the shape coordinates for the image.
+            This is because for non-synthetic image data, the coordinates are stored as y, x.
             
         """
-        
         if not self.sample_files:
-            self.sample_files = random.sample(list(self.yolo_pose.keys()), k=9)
+            if sample_size > 9:
+                sample_size = 9
+            self.sample_files = random.sample(list(self.yolo_pose.keys()), k=sample_size)
         
         uv = dict()
         
@@ -676,7 +694,11 @@ class PanopticManual(Panoptic):
             
             i = 0
             while i < int(len(landmarks)):
-                scaling = np.multiply(landmarks[i:i+2], list(self.image_shape[f]))
+                if invert_coords:
+                    m1, m2 = self.image_shape[f][::-1]
+                else:
+                    m1, m2 = self.image_shape[f]
+                scaling = np.multiply(landmarks[i:i+2], list((m1, m2)))
                 uv[f].append(np.array(scaling, np.int32))
                 i+=2
             

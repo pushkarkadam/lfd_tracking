@@ -735,3 +735,146 @@ class PanopticManual(Panoptic):
             
         if save:
             fig.savefig(filename)
+
+class MergeHands(PanopticManual):
+    """Merges hand data.
+    
+    The data is currently stored in a YOLO format as images and labels subdirectory.
+    This class reads the data for right and left hand and merges them into a single
+    label file and also writes the image as one image for both the hand labels.
+    
+    Parameters
+    ----------
+    data_path: str
+        Data path where the ``images`` and ``labels`` is stored.
+        
+    Attributes
+    ----------
+    sub_dir: list, default ``['images', 'labels']``
+        A list of sub directories.
+    paths: list
+        A list of all the file paths with the subdirectories.
+    yolo_annot: dict
+        A dictionary that stores the YOLO annotation.
+    annotation_files: list
+        A list of the annotation files
+        
+    Methods
+    -------
+    combine_annotations(separate_hands=True)
+        Combines the annotation for the hands in the image.
+    
+    """
+    
+    def __init__(self, data_path, image_extension='.jpg', label_extension='.txt'):
+        self.data_path = data_path
+        
+        self.image_extension = image_extension
+        
+        self.label_extension = label_extension
+        
+        self.sub_dir = ['images', 'labels']
+        
+        self.paths = []
+        
+        self.yolo_annot = dict()
+        
+        # Getting all the data paths
+        for s in self.sub_dir:
+            self.paths.append(os.path.join(data_path, s))
+                  
+    def combine_annotations(self, separate_hands=True):
+        """Combines the annotations.
+
+        Parameters
+        ----------
+        separate_hands: bool, default ``True``
+            Separates the hands as left and right hand.
+            ``left_hand_label = 0``
+            ``right_hand_label = 1``
+        
+        """
+        
+        # Assigning the labels path
+        labels_path = self.paths[1]
+        
+        # Reading the labels to get the root of the names
+        self.annotation_files = os.listdir(labels_path)
+
+        # Separate extension
+        self.label_files = [os.path.splitext(f)[0] for f in self.annotation_files]
+
+        # Adding empty list to yolo annotation dict
+        for label in self.label_files:
+            self.yolo_annot[label[:-2]] = []
+
+        # Reading text files and assigning labels
+        for file, label_file in zip(self.annotation_files, self.label_files):
+            with open(os.path.join(labels_path, file), 'r') as f:
+                line = f.readline().strip()
+                annot = [float(num) for num in line.split()]
+
+                # Checking if the hands are to be separated as left and right hands
+                if separate_hands:
+                    # Changing annotation class of right hand to 1
+                    if label_file[-1:] == 'r':
+                        annot[0] = 1.0
+
+                # Extracting the filename without extension
+                filename = label_file[:-2]
+
+                # Appending the annotation of both right and left hands to a single key
+                # of same filename
+                self.yolo_annot[filename].append(annot)
+                
+    def combine_images(self, save_path='.', directory='combined_images'):
+        """Combines the image to a single file"""
+        
+        # Assigning the file path
+        images_path = self.paths[0]
+        
+        all_files = list(self.yolo_annot.keys())
+        
+        images_save_path = os.path.join(save_path, directory)
+             
+        for file in all_files:
+            # Assigning original left hand annotation images to image_file
+            image_file = os.path.join(images_path, file + '_l' + self.image_extension)
+
+            # Checking if the image exists in the directory
+            # if the image doesn't exist, we try to see if right hand image exists
+            if not os.path.exists(image_file):
+                image_file = os.path.join(images_path, file + '_r' + self.image_extension)
+            
+            try:
+                image = cv2.imread(image_file)
+            except:
+                continue
+            
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
+                print(f"New directory {directory} created at {labels_path}")
+            
+            cv2.imwrite(os.path.join(images_save_path, file + self.image_extension), image)
+            
+    def save_annotations(self, save_path='.', directory='combined_labels'):
+        """Saves the annotations"""
+        
+        labels_path = os.path.join(save_path, directory)
+        
+        if not os.path.exists(labels_path):
+            os.makedirs(labels_path)
+            print(f"New directory {directory} created at {labels_path}")
+            
+        if self.yolo_annot:
+            for k, v in self.yolo_annot.items():
+                label_file = os.path.join(labels_path, k + self.label_extension)
+
+                yolo_annotation = self.yolo_annot[k]
+
+                with open(label_file, 'w') as file:
+                    for label in yolo_annotation:
+                        for c in label:
+                            file.write('%s' % c)
+                            file.write(' ')
+                        file.write('\n')

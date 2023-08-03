@@ -736,8 +736,8 @@ class PanopticManual(Panoptic):
         if save:
             fig.savefig(filename)
 
-class MergeHands(PanopticManual):
-    """Merges hand data.
+class MergeHands:
+    """Merges hand data from left right and multiple person in the same image to one image.
     
     The data is currently stored in a YOLO format as images and labels subdirectory.
     This class reads the data for right and left hand and merges them into a single
@@ -758,14 +758,25 @@ class MergeHands(PanopticManual):
         A dictionary that stores the YOLO annotation.
     annotation_files: list
         A list of the annotation files
+    label_files: list
+        A list of label file with only the root of file name without extension
+        and handedness or multiple annotation serial number.
         
     Methods
     -------
     combine_annotations(separate_hands=True)
         Combines the annotation for the hands in the image.
+    combine_images(save_path='.', directory='combined_images')
+        Combines the images with the root name.
+        Images are ordered as `img0_01_l.jpg`, `img0_01_r.jpg`, `img0_02_l.jpg`, `img0_02_r.jpg`.
+        These images are the same image with the same root `img0`.
+        They are present in multiple copies depending upon the number of annotations in the single
+        image that is available.
+    save_annotation(save_path='.', directory='combined_images')
+        Saving the annotations for multiple labels in the same image
+        with the same root file from ``combine_images()`` method.
     
-    """
-    
+    """   
     def __init__(self, data_path, image_extension='.jpg', label_extension='.txt'):
         self.data_path = data_path
         
@@ -794,7 +805,6 @@ class MergeHands(PanopticManual):
             ``right_hand_label = 1``
         
         """
-        
         # Assigning the labels path
         labels_path = self.paths[1]
         
@@ -806,7 +816,7 @@ class MergeHands(PanopticManual):
 
         # Adding empty list to yolo annotation dict
         for label in self.label_files:
-            self.yolo_annot[label[:-2]] = []
+            self.yolo_annot[label[:-5]] = []
 
         # Reading text files and assigning labels
         for file, label_file in zip(self.annotation_files, self.label_files):
@@ -821,47 +831,72 @@ class MergeHands(PanopticManual):
                         annot[0] = 1.0
 
                 # Extracting the filename without extension
-                filename = label_file[:-2]
+                filename = label_file[:-5]
 
                 # Appending the annotation of both right and left hands to a single key
                 # of same filename
                 self.yolo_annot[filename].append(annot)
                 
     def combine_images(self, save_path='.', directory='combined_images'):
-        """Combines the image to a single file"""
+        """Combines the image to a single file.
         
+        Parameters
+        ----------
+        save_path: str, default ``'.'``
+            The path where the result directory and files are to be saved.
+        directory: str, default ``'labels'``
+            The directory name under which the labels text files are to be saved.
+        
+        """
         # Assigning the file path
         images_path = self.paths[0]
         
+        # All the root file names that are there in the YOLO annotation
         all_files = list(self.yolo_annot.keys())
         
+        # Combining the path to save images
         images_save_path = os.path.join(save_path, directory)
-             
+        
+        # Creating a directory if it does not exist
+        if not os.path.exists(images_save_path):
+            os.makedirs(images_save_path)
+            print(f"New directory {directory} created at {images_save_path}")
+        
+        #  List of files
+        file_list = os.listdir(images_path)
+        
+        # Getting a list of all the files that have the same root name as
+        # the key in the yolo_annot
+        result_list = [filename for filename in file_list if bar[:-5] in filename]
+        
+        # Going through the files as per the yolo_annot keys     
         for file in all_files:
+            # Selecting all the files with same root name
+            similar_files = [filename for filename in file_list if file in filename]
+            
             # Assigning original left hand annotation images to image_file
-            image_file = os.path.join(images_path, file + '_l' + self.image_extension)
-
-            # Checking if the image exists in the directory
-            # if the image doesn't exist, we try to see if right hand image exists
-            if not os.path.exists(image_file):
-                image_file = os.path.join(images_path, file + '_r' + self.image_extension)
+            image_file = os.path.join(images_path, similar_files[0])
             
-            try:
-                image = cv2.imread(image_file)
-            except:
-                continue
-            
-            if not os.path.exists(save_path):
-                os.makedirs(save_path)
-                print(f"New directory {directory} created at {labels_path}")
+            # Reading the image
+            image = cv2.imread(image_file)
             
             cv2.imwrite(os.path.join(images_save_path, file + self.image_extension), image)
             
     def save_annotations(self, save_path='.', directory='combined_labels'):
-        """Saves the annotations"""
+        """Saves the annotations.
         
+        Parameters
+        ----------
+        save_path: str, default ``'.'``
+            The path where the result directory and files are to be saved.
+        directory: str, default ``'labels'``
+            The directory name under which the labels text files are to be saved.
+            
+        """
+        # Labels path to read the labels from
         labels_path = os.path.join(save_path, directory)
         
+        # Creating a directory if it does not exist
         if not os.path.exists(labels_path):
             os.makedirs(labels_path)
             print(f"New directory {directory} created at {labels_path}")

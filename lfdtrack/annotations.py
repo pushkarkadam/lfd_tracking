@@ -966,7 +966,18 @@ class FreiHand(Panoptic):
         Converts the pose coordinates from the datafiles to YOLO and YOLO pose formats.
     save_images(save_path='.', image_location = 'rgb' , directory='Freihand_images', image_extension='.jpg')
         Saves the images that has annotations to the given directory.
-        
+
+    Examples
+    --------
+    >>> from lfdtrack import *
+    >>> data_path = '~/path/to/data/FreiHand/'
+    >>> training = FreiHand(data_path, file_type='training')
+    >>> training.load_data_files()
+    >>> training.read_image_files()
+    >>> training.project_landmarks()
+    >>> training.save(annotations=training.yolo_pose, directory='FreiHand_training_labels')
+    >>> training.save_images(directory='Friehand_training')
+    
     """
     
     def __init__(self, path, file_type='training'):

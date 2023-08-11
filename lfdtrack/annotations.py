@@ -913,3 +913,295 @@ class MergeHands:
                             file.write('%s' % c)
                             file.write(' ')
                         file.write('\n')
+
+class FreiHand(Panoptic):
+    """A class that extracts the annotation and stores them in YOLO format.
+    
+    Parameters
+    ----------
+    path: str
+        The root to the path where the data is stored.
+    file_type: str, default ``'training'``
+        The type of data used.
+        Options: ``'training'``, ``'evaluation'``
+    
+    Attributes
+    ----------
+    K_array: list
+        A list of the intrinsic camera matrix.
+    verts_array: list
+        A list of verts.
+    xyz_array: list
+        A list of xyz coordinates of hand landmark.
+    uv: dict
+        A dictionary that maps the image name to the landmarks.
+    image_filenames: list
+        A list of all the image files.
+    EDGES: list
+        A list of landmark point graph connection.
+    images_shape: dict
+        A dictionary that maps image file names to the shape of the image.
+    yolo_annot: dict
+        A dictionary that maps the image file names to YOLO annotations.
+        YOLO format: [class x y w h]
+    yolo_pose: dict
+        A dictionary that maps the image file names to YOLO pose annotations.
+        YOLO pose format: [class x y w h px1 py1 ... px21 py21]
+        Pose consists of YOLO annotations along with 21 hand landmark.
+    bounding_box: dict
+        A dictionary that maps the image file names to bounding box coordinates.
+        format: [xmin, ymin, xmax, ymax]
+        
+    Methods
+    -------
+    load_json_files()
+        Loads the json files.
+    convert_json_to_pickle()
+        Converts json to pickle files.
+    load_data_files()
+        Loads the pickle files
+    read_image_files(images_path='rgb')
+        Reads image files to store the image shapes.
+    project_landmarks()
+        Converts the pose coordinates from the datafiles to YOLO and YOLO pose formats.
+    save_images(save_path='.', image_location = 'rgb' , directory='Freihand_images', image_extension='.jpg')
+        Saves the images that has annotations to the given directory.
+        
+    """
+    
+    def __init__(self, path, file_type='training'):
+        self.path = path
+        
+        self.file_type = file_type
+        
+         # Camera calibration matrix
+        self.K_array = []
+        
+        # Vertices
+        self.verts_array = []
+        
+        # XYZ coordinates
+        self.xyz_array = []
+        
+        # Image coordinates
+        self.uv = dict()
+        
+        # Images list
+        self.image_filenames = []
+        
+        # graph
+        self.EDGES = [[0,1], [1,2], [2,3], [3,4], 
+                      [0,5], [5,6], [6,7], [7,8],
+                      [0,9], [9,10],[10,11], [11,12],
+                      [0,13],[13,14], [14,15], [15,16],
+                      [0,17],[17,18], [18,19], [19,20]]
+        
+        # image shapes
+        # shape format (H, W) --> numpy shape format for (row, col)
+        self.images_shape = dict()
+        
+        self.yolo_annot = dict()
+        self.yolo_pose = dict()
+        self.bounding_boxes = dict()
+        
+    def load_json_files(self):
+        """Loads the json file.
+        
+        Paramters
+        ---------
+        self.file_type: str, default ``'training'``
+            The type of files to pick up.
+            Available options: ``'training'``, ``'evaluation'``
+            
+        """
+        
+        start = time.time()
+        
+        with open(f'{self.path}/{self.file_type}_K.json') as K_fp:
+            print("Reading K...")
+            self.K_array = json.load(K_fp)
+            
+        with open(f'{self.path}/{self.file_type}_verts.json') as verts_fp:
+            print("Reading verts...")
+            self.verts_array = json.load(verts_fp)
+            
+        with open(f'{self.path}/{self.file_type}_xyz.json') as xyz_fp:
+            print("Reading xyz...")
+            self.xyz_array = json.load(xyz_fp)
+            
+        end = time.time()
+        
+        time_elapsed = end - start
+        
+        print(f"Time elapsed: {time_elapsed:.2f}s")
+        
+    def convert_json_to_pickle(self):
+        """Converts all the files to """
+        
+        files = []
+        
+        with os.scandir(self.path) as entries:
+            for entry in entries:
+                file, extension = os.path.splitext(entry.name)
+                if extension == '.json':
+                    files.append(file)
+                    
+        for file in files:
+            json_location = os.path.join(self.path, file + '.json')
+            pickle_location = os.path.join(self.path, file + '.pickle')
+            
+            with open(json_location) as f:
+                print(f'Reading {json_location}...')
+                json_file = json.load(f)
+                
+            with open(pickle_location, 'wb') as pf:
+                print(f'Saving {pickle_location}...')
+                pickle.dump(json_file, pf)
+                
+            del json_file
+            
+    def load_data_files(self):
+        """Loads the pickle data files.
+        
+        Paramters
+        ---------
+        self.file_type: str, default ``'training'``
+            The type of files to pick up.
+            Available options: ``'training'``, ``'evaluation'``
+        """
+        
+        start = time.time()
+        
+        with open(f'{self.path}/{self.file_type}_K.pickle', 'rb') as K_fp:
+            print(f"Reading {self.file_type}_K...")
+            self.K_array = pickle.load(K_fp)
+            
+        with open(f'{self.path}/{self.file_type}_verts.pickle', 'rb') as verts_fp:
+            print("Reading verts...")
+            self.verts_array = pickle.load(verts_fp)
+
+        with open(f'{self.path}/{self.file_type}_xyz.pickle', 'rb') as xyz_fp:
+            print("Reading xyz...")
+            self.xyz_array = pickle.load(xyz_fp)
+            
+        end = time.time()
+        
+        time_elapsed = end - start
+        
+        print(f"Time elapsed: {time_elapsed:.2f}s")
+            
+    def read_image_files(self, images_path='rgb'):
+        """Reads and populates the images file list.
+        
+        Parameters
+        ----------
+        images_path: str, default ``'rgb'``
+            The directory where the images are stored.
+        
+        """
+        # Using the full path for the images
+        # root path + training/evalutate + 'rgb'
+        full_path = os.path.join(self.path, self.file_type, images_path)
+        
+        with os.scandir(full_path) as entries:
+            for entry in tqdm(entries):
+                file, extension = os.path.splitext(entry.name)
+                self.image_filenames.append(file)
+                
+                image = cv2.imread(os.path.join(full_path, entry))
+                
+                # adding the shape
+                self.images_shape[file] = image.shape
+                
+                # deleting the image to free memory
+                del image
+                
+        # sorting the list
+        self.image_filenames.sort()
+        
+        # sorting the image shape dictionary
+        self.images_shape = dict(sorted(self.images_shape.items()))
+      
+    def project_landmarks(self):
+        """Projects the landmarks"""
+        
+        for K, xyz, file in zip(tqdm(self.K_array), self.xyz_array, self.image_filenames):
+            xyz_i = np.array(xyz)
+            K_i = np.array(K)
+            
+            uv_i = np.matmul(K_i, xyz_i.T).T
+            
+            landmarks = (uv_i[:, :2] / uv_i[:,-1:]).astype(np.int32)
+            
+            self.uv[file] = landmarks
+            
+            # get image shapes
+            H, W, _ = self.images_shape[file]
+            
+            x = []
+            y = []
+            pose = []
+            
+            for landmark in landmarks:
+                x.append(landmark[0])
+                y.append(landmark[1])
+                
+                # Appending pose coordinates 
+                pose.append(landmark[0]/W)
+                pose.append(landmark[1]/H)
+                
+                xmin = np.min(x)
+                ymin = np.min(y)
+                xmax = np.max(x)
+                ymax = np.max(y)
+
+                yolo_coord = [0, 
+                              (xmin + (xmax - xmin)/2)/W, 
+                              (ymin + (ymax - ymin)/2)/H, 
+                              (xmax - xmin)/W,
+                              (ymax - ymin)/H
+                         ]
+                
+                pose_coord = yolo_coord + pose
+                
+                self.yolo_annot[file] = yolo_coord
+                self.yolo_pose[file] = pose_coord
+                
+                # Bounding boxes | format: [xmin, ymin, xmax, ymax]
+                self.bounding_boxes[file] = [xmin, ymin, xmax, ymax]                
+            
+    def save_images(self, save_path='.', image_location = 'rgb' , directory='Freihand_images', image_extension='.jpg'):
+        """Reads and writes the images.
+        
+        Parameters
+        ----------
+        save_path: str, default ``'.'``
+            Save location of the images.
+        image_location: str, default ``'rgb'``
+            Location where to look for the images in the ``'training'`` or ``'evaluation'`` directory.
+        directory: str, default ``'Freihand_images'``
+            Directory to store the images.
+        image_extension: str, default ``'.jpg'``
+            Extension of the images.
+            
+        """
+        
+        image_dir_path = os.path.join(save_path, directory)
+        
+        if not os.path.exists(image_dir_path):
+            os.makedirs(image_dir_path)
+            print(f"New directory {directory} created at {image_dir_path}")
+        
+        files = list(self.yolo_pose.keys())
+        
+        for fn in tqdm(files):
+            image_path = os.path.join(self.path, self.file_type, image_location, fn + image_extension)
+            image_save_path = os.path.join(image_dir_path, fn + image_extension)
+            
+            try:
+                image = cv2.imread(image_path)
+                cv2.imwrite(image_save_path, image)
+                del image
+            except Exception as e:
+                print(e)
+                continue

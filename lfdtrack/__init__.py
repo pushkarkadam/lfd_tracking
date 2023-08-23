@@ -25,3 +25,7 @@ from .search import *
 import lfdtrack.annotations 
 from lfdtrack.annotations import *
 from .annotations import *
+
+import lfdtrack.handpose
+from lfdtrack.handpose import *
+from .handpose import *

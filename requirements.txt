@@ -11,3 +11,7 @@ sphinx
 pytest
 tqdm
 mpl-point-clicker
+torch
+torchvision 
+torchaudio
+ultralytics

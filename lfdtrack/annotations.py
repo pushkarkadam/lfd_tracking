@@ -1216,3 +1216,254 @@ class FreiHand(Panoptic):
             except Exception as e:
                 print(e)
                 continue
+
+class FreiHandReflection(FreiHand):
+    """Reflects the images and coordinates.
+    
+    Attributes
+    ----------
+    images_path: str
+        Location of images.
+    labels_path: str
+        Location of labels.
+    sample_files: list
+        Sample files for sanity check.
+    reflected_files: list
+        A list of reflected filenames.
+    reflected_landmarks: dict
+        A dict of reflected landmarks.
+    reflected_yolo_pose: dict
+        A dict of reflected yolo pose.
+    sample_files, list
+        A list of sample files for rendering.
+    sample_images: dict
+        A dict of sample images mapping filename to image matrix.
+    sample_rendered: dict
+        A dict of sample images rendered mapping filename to rendered image matrix.
+    
+    Parameters
+    ----------
+    path: str
+        Path where the root data is stored.
+        The path will have two separate directories for ``images`` and ``labels``.
+    directories: list, default ``['images', 'labels']``
+        A list of filename for two directories of ``images`` and ``labels``.
+        Follow the order of ``images`` and then ``labels``.
+        
+    Methods
+    -------
+    read_pose()
+        Reads text file of yolo pose.
+    reflect_annotations(identifier='_l', class_label=1, T = np.array([[-1, 0, 0],[0, 1, 0], [1, 0, 1]])))
+        Reflects the annotations depending on the transformation matrix.
+    reflect_save_images(identifier='_l', extension='.jpg', flip_type=1, save_path='.', directory='images')
+        Reflects and saves the image.
+    render_pose(reflected_path, sample_size=9, image_extension='.jpg')
+        Renders pose for sanity check.
+        
+    """
+    
+    def __init__(self, path, file_type='train', directories=['images', 'labels']):
+        self.path = path
+        self.directories = directories
+        
+        super(FreiHandReflection, self).__init__(path, file_type)
+        
+        self.images_path = os.path.join(path, self.file_type, self.directories[0])
+        self.labels_path = os.path.join(path, self.file_type, self.directories[1])
+        
+        self.reflected_files = []
+        self.reflected_landmarks = dict()
+        self.reflected_yolo_pose = dict()
+        
+        # sample files
+        self.sample_files = []
+        self.sample_images = dict()
+        self.sample_rendered = dict()
+        
+        
+    def read_pose(self, extension='.txt'):
+        """Reads the pose coordinates from the labels directory.
+        
+        Paramters
+        ---------
+        extension: str, ``'.txt'``
+            Text file extension.
+            
+        """
+
+        for text_file in self.image_filenames:
+            with open(os.path.join(self.labels_path, text_file + extension)) as f:
+                line = f.readline().strip()
+                annot = [float(num) for num in line.split()]
+                self.yolo_pose[text_file] = annot
+                
+    def reflect_annotations(self, 
+                            identifier='_l', 
+                            class_label=1, 
+                            T = np.array([[-1, 0, 0], 
+                                          [0, 1, 0], 
+                                          [1, 0, 1]])
+                           ):
+        """Reflect annotations along y axis and translates along x axis.
+        
+        Parameters
+        ----------
+        identifier: str, default ``'_l'``
+            Identifier to add at the end of the filename.
+        class_label: int, default ``1``
+            Class label to put in front of yolo annotations.
+        T: numpy.ndarray, default ``np.array([[-1, 0, 0],[0, 1, 0],[1, 0, 1]])``
+            Transformation matrix.
+            
+        """
+        
+        for img_file in tqdm(self.image_filenames):
+            
+            H, W, _ = self.images_shape[img_file]
+
+            # Pose
+            pose = self.yolo_pose[img_file]
+            
+            # x and y center point of bounding box
+            x, y = pose[1:3]
+            
+            w, h = pose[3:5]
+            
+            # landmarks
+            lmks = pose[5:]
+            
+            # mirroring
+            xm, ym, _ = np.dot([x, y, 1], T)
+            
+            # landmarks seperated
+            lmks_sep = []
+            
+            i = 0
+            while i < int(len(lmks)):
+                px, py = lmks[i:i+2]
+                lmks_sep.append((px, py))
+                i+=2
+            
+            reflected_lmks = []
+            reflected_lmks_sep = []
+            
+            for p in lmks_sep:
+                pxm, pym, _ = np.dot([p[0], p[1], 1], T)
+                reflected_lmks.append(pxm)
+                reflected_lmks.append(pym)
+                reflected_lmks_sep.append((pxm, pym))
+                
+            # combining pose
+            reflected_pose = [class_label] + [x, y] +  [w, h] + reflected_lmks
+            
+            self.reflected_yolo_pose[img_file + identifier] = reflected_pose
+            
+            self.reflected_files.append(img_file + identifier)
+            
+            self.reflected_landmarks[img_file + identifier] = reflected_lmks_sep
+    
+    def reflect_save_images(self, identifier='_l', extension='.jpg', flip_type=1, save_path='.', directory='images'):
+        """Reflects the image along y axis.
+        
+        Parameters
+        ----------
+        identifier: str, default ``'_l'``
+            Identifier to add at the end of the filename.
+        extension: str, default ``'.jpg'``
+            Image file extension.
+        flip_type: int, default ``1``
+            OpenCV parameter to ``flip`` function.
+        save_path: str, default ``'.'``
+            Path to save.
+        
+        """
+        image_dir_path = os.path.join(save_path, directory)
+        
+        if not os.path.exists(image_dir_path):
+            os.makedirs(image_dir_path)
+            print(f"New directory {directory} created at {image_dir_path}")
+        
+        for image_name in tqdm(self.image_filenames):
+            image_path = os.path.join(self.images_path, image_name + extension)
+            image_save_path = os.path.join(image_dir_path, image_name + identifier + extension)
+
+            try:
+                # Read image
+                image = cv2.imread(image_path)
+            
+                # Flipping image
+                flipped_image = cv2.flip(image, flip_type)
+                
+                cv2.imwrite(image_save_path, flipped_image)
+                
+                # Deleting image
+                del image
+                del flipped_image
+            except Exception as e:
+                print(e)
+                continue
+                
+    def _generate_sample_files(self, files, sample_size=9):
+        """Generates sample files.
+        
+        Parameters
+        ----------
+        files: list
+            A list of filenames.
+        sample_size: int, default ``9``
+            Sample size to randomly pick.
+            
+        """
+        
+        if len(files) > sample_size:
+            self.sample_files = random.sample(files, k=sample_size)
+        else:
+            self.sample_files = files
+
+    def render_pose(self, reflected_path, sample_size=9, image_extension='.jpg'):
+        """A visual check for sanity check.
+        
+        Parameters
+        ----------
+        reflected_path: str
+            Path where the reflected images are stored
+        sample_size: int, default ``9``
+            Sample size to randomly pick.
+        image_extension: str, default ``'.jpg'``
+            Image extension for reading and saving.
+            
+        """
+        
+        ref_images_path = os.path.join(reflected_path, self.directories[0])
+        ref_labels_path = os.path.join(reflected_path, self.directories[1])
+        
+        # Checking if sample files are available
+        # if the files are not available then generate files
+        if not self.sample_files:
+            self._generate_sample_files(files=self.reflected_files, sample_size=sample_size)
+        
+        for fn in self.sample_files:
+            image_file_path = os.path.join(ref_images_path, fn + image_extension)
+            image = cv2.imread(image_file_path)
+            self.sample_images[fn] = image
+            
+            H, W, _ = self.images_shape[fn[:-2]]
+            
+            # Scaling landmarks
+            uv = [(np.int32(p[0] * W), np.int32(p[1] * H)) for p in self.reflected_landmarks[fn]]
+            
+            for e in self.EDGES:
+                image = cv2.line(image, uv[e[0]], uv[e[1]], (255, 255, 255), 2)
+                
+            for n, landmark in enumerate(uv):
+                image = cv2.circle(image, landmark, 2, (255, 0, 0), -1)
+                image = cv2.putText(image, 
+                                    text=str(n), 
+                                    org=landmark, 
+                                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                                    fontScale=0.2,
+                                    color=(0, 0, 0),
+                                    thickness=1
+                                   )
+            self.sample_rendered[fn] = image

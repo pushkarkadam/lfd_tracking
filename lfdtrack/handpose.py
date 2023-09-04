@@ -125,4 +125,35 @@ class YOLOHandPose:
             
         else:
             cv2.imwrite(file_path + '.png', self.rendered_images[0])
-                
+
+def flip_pose(poses, T):
+    """Flips the pose as per transformation matrix T.
+    
+    Parameters
+    ----------
+    poses: list
+        A list of pose detected from the YOLOHandPose
+    T: numpy.ndarray
+        A transformation matrix for flipped.
+    
+    Returns
+    -------
+    list
+        A list of transformed coordinates.
+        
+    """
+    flipped_lmks = []
+
+    for pose in poses:
+        if pose:
+            lmks = []
+            for lmk in pose:
+                x, y = lmk
+                flip_lmk = np.dot([x,y,1], T)
+                fx, fy, _ = flip_lmk
+                lmks.append((fx, fy))
+            flipped_lmks.append(lmks)
+        else:
+            flipped_lmks.append([])
+    
+    return flipped_lmks

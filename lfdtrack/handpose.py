@@ -52,6 +52,11 @@ class YOLOHandPose:
         self.xy = []
         self.EDGES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]]
         self.rendered_images = []
+        self.boxes = []
+        self.boxes_xywh = []
+        self.boxes_xywhn = []
+        self.boxes_xyxy = []
+        self.boxes_xyxyn = []
         
         # Importing weights using YOLO
         try:
@@ -67,25 +72,52 @@ class YOLOHandPose:
         self.results.append(result)
 
         # Appending keypoints
-        kpt = result[0].keypoints
-        self.keypoints.append(kpt)
+        kpts = result[0].keypoints
+        self.keypoints.append(kpts)
+        
+        # Appending boxes
+        boxes = result[0].boxes
+        self.boxes.append(boxes)
+        
+        # Appending anchor coordinates detected in the image frame to a list
+        self.boxes_xywh.append(result[0].boxes.xywh.cpu().numpy())
+        self.boxes_xywhn.append(result[0].boxes.xywhn.cpu().numpy())
+
+        # Appending box vertices to the list
+        self.boxes_xyxy.append(result[0].boxes.xyxy.cpu().numpy())
+        self.boxes_xyxyn.append(result[0].boxes.xyxyn.cpu().numpy())
 
         # Normalised keypoints
-        xyn_array = kpt.xyn.cpu().numpy()[0]
-        xyn = [tuple(i) for i in xyn_array]
-        self.xyn.append(xyn)
+        xyn_array = result[0].keypoints.xyn.cpu().numpy()
+        xyn_temp = []
+        for i in xyn_array:
+            xyn = [tuple(j) for j in i]
+            xyn_temp.append(xyn)
+        self.xyn.append(xyn_temp)
 
         # Keypoints
-        xy_array = kpt.xy.cpu().numpy()[0]
-        xy = [tuple(i) for i in xy_array]
-        self.xy.append(xy)
+        xy_array = result[0].keypoints.xy.cpu().numpy()
+        xy_temp = []
+        for i in xy_array:
+            xy = [tuple(j) for j in i]
+            xy_temp.append(xy)
+        self.xy.append(xy_temp)
     
     def process(self):
         """Processes the video frames.""" 
         for frame in self.frames:
             self._extract_results(frame)
             
-    def render_pose(self, font_color=(0, 0, 0), edge_color=(255, 255, 255), landmark_color=(255, 0, 0),font_scale=0.2):
+    def render_pose(self, 
+                    font_color=(0, 0, 0), 
+                    edge_color=(255, 255, 255), 
+                    landmark_color=(255, 0, 0),
+                    font_scale=0.2,
+                    show_landmarks=True,
+                    show_box=True,
+                    show_confidence=True,
+                    show_label=True
+                   ):
         """Renders the image."""
         for idx, frame in enumerate(self.frames):
             if not self.xy[idx]:

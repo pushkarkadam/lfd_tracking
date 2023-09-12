@@ -120,23 +120,25 @@ class YOLOHandPose:
                    ):
         """Renders the image."""
         for idx, frame in enumerate(self.frames):
-            if not self.xy[idx]:
+            if not self.xy[idx][0]:
                 continue
-            uv = [(np.int32(i[0]), np.int32(i[1])) for i in self.xy[idx]]
-            for e in self.EDGES:
-                frame = cv2.line(frame, uv[e[0]], uv[e[1]], edge_color, 2)
-            
-            for n, landmark in enumerate(uv):
-                frame = cv2.circle(frame, landmark, 2, landmark_color, -1)
-                frame = cv2.putText(frame, 
-                                    text=str(n), 
-                                    org=landmark, 
-                                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                                    fontScale=font_scale,
-                                    color=font_color,
-                                    thickness=1
-                                   )
                 
+            for xy in self.xy[idx]:
+                uv = [(np.int32(i[0]), np.int32(i[1])) for i in xy]
+                for e in self.EDGES:
+                    frame = cv2.line(frame, uv[e[0]], uv[e[1]], edge_color, 2)
+
+                for n, landmark in enumerate(uv):
+                    frame = cv2.circle(frame, landmark, 2, landmark_color, -1)
+                    frame = cv2.putText(frame, 
+                                        text=str(n), 
+                                        org=landmark, 
+                                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                                        fontScale=font_scale,
+                                        color=font_color,
+                                        thickness=1
+                                       )
+
             self.rendered_images.append(frame)
             
     def save(self, filename='rendered', path=".", frame_rate=30):

@@ -121,6 +121,7 @@ class YOLOHandPose:
         """Renders the image."""
         for idx, frame in enumerate(self.frames):
             if not self.xy[idx][0]:
+                self.rendered_images.append(frame)
                 continue
                 
             for xy in self.xy[idx]:

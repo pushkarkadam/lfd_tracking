@@ -7,6 +7,7 @@ import re
 import json
 import random
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 class VOC:

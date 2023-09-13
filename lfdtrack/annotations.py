@@ -1326,16 +1326,8 @@ class FreiHandReflection(FreiHand):
             # Pose
             pose = self.yolo_pose[img_file]
             
-            # x and y center point of bounding box
-            x, y = pose[1:3]
-            
-            w, h = pose[3:5]
-            
             # landmarks
             lmks = pose[5:]
-            
-            # mirroring
-            xm, ym, _ = np.dot([x, y, 1], T)
             
             # landmarks seperated
             lmks_sep = []
@@ -1354,6 +1346,23 @@ class FreiHandReflection(FreiHand):
                 reflected_lmks.append(pxm)
                 reflected_lmks.append(pym)
                 reflected_lmks_sep.append((pxm, pym))
+                 
+            # Generating bounding box
+            x_temp = []
+            y_temp = []
+            for lmk in reflected_lmks_sep:
+                x_temp.append(lmk[0])
+                y_temp.append(lmk[1])
+                
+            xmin = np.min(x_temp)
+            ymin = np.min(y_temp)
+            xmax = np.max(x_temp)
+            ymax = np.max(y_temp)
+            
+            x = xmin + (xmax - xmin)/2
+            y = ymin + (ymax - ymin)/2
+            w = xmax - xmin
+            h = ymax - ymin
                 
             # combining pose
             reflected_pose = [class_label] + [x, y] +  [w, h] + reflected_lmks
@@ -1467,4 +1476,13 @@ class FreiHandReflection(FreiHand):
                                     color=(0, 0, 0),
                                     thickness=1
                                    )
+                
+            # bounding box
+            x, y, w, h = self.reflected_yolo_pose[fn][1:5]
+            
+            p0 = (int((x - w/2) * W), int((y - h/2)* H))
+            p1 = (int((x + w/2) * W), int((y + h/2)* H))
+            
+            image = cv2.rectangle(image, p0, p1 , (0, 0, 255), 2)
+            
             self.sample_rendered[fn] = image
